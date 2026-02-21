@@ -1,67 +1,99 @@
-import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import { execSync } from "child_process";
+import { NextResponse } from "next/server";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import crypto from "node:crypto";
 
-export const runtime = "nodejs";
+const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+const INDEX_PATH = path.join(UPLOADS_DIR, "index.json");
 
-export async function POST(req: NextRequest) {
+function makeId() {
+  return crypto.randomUUID();
+}
+
+async function readIndex() {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file");
+    const raw = await fs.readFile(INDEX_PATH, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
 
-    if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
+async function writeIndex(items: any[]) {
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+  await fs.writeFile(INDEX_PATH, JSON.stringify(items, null, 2));
+}
 
-    // 1) Save upload to /uploads
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+async function extractText(pdfPath: string) {
+  return new Promise<{ ok: boolean; text?: string; err?: string }>((resolve) => {
+    const child = spawn("pdftotext", ["-layout", pdfPath, "-"]);
+    let out = "";
+    let err = "";
 
-    const uploadDir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    child.stdout.on("data", d => out += d.toString());
+    child.stderr.on("data", d => err += d.toString());
 
-    // sanitize filename a bit
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = path.join(uploadDir, safeName);
-
-    fs.writeFileSync(filePath, buffer);
-
-    // 2) Extract text
-    let extractedText = "";
-
-    const lower = safeName.toLowerCase();
-
-    if (lower.endsWith(".txt")) {
-      extractedText = fs.readFileSync(filePath, "utf-8");
-    } else if (lower.endsWith(".pdf")) {
-      // Convert PDF -> txt via pdftotext (poppler)
-      const txtPath = filePath.replace(/\.pdf$/i, ".txt");
-
-      // -layout keeps layout-ish, -nopgbrk avoids page breaks sometimes
-      execSync(`pdftotext -layout -nopgbrk "${filePath}" "${txtPath}"`);
-
-      extractedText = fs.readFileSync(txtPath, "utf-8");
-    } else {
-      return NextResponse.json(
-        { error: "Unsupported file type. Upload .pdf or .txt" },
-        { status: 400 }
-      );
-    }
-
-    // 3) Return preview
-    return NextResponse.json({
-      ok: true,
-      filename: safeName,
-      storedAt: `/uploads/${safeName}`,
-      textLength: extractedText.length,
-      preview: extractedText.slice(0, 1200),
+    child.on("close", code => {
+      if (code === 0) resolve({ ok: true, text: out });
+      else resolve({ ok: false, err });
     });
-  } catch (err: any) {
-    console.error(err);
+
+    child.on("error", e => {
+      resolve({ ok: false, err: String(e) });
+    });
+  });
+}
+
+export async function POST(req: Request) {
+  const form = await req.formData();
+  const file = form.get("file");
+
+  if (!file || !(file instanceof File)) {
+    return NextResponse.json({ ok: false }, { status: 400 });
+  }
+
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+
+  const id = makeId();
+  const storedName = `${id}.pdf`;
+  const storedPath = path.join(UPLOADS_DIR, storedName);
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await fs.writeFile(storedPath, buffer);
+
+  const result = await extractText(storedPath);
+
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "Upload failed", details: String(err?.message || err) },
+      { ok: false, error: result.err },
       { status: 500 }
     );
   }
+
+  const text = result.text || "";
+  const preview = text.slice(0, 800);
+
+  const item = {
+    id,
+    originalName: file.name,
+    storedName,
+    storedAt: `/uploads/${storedName}`,
+    sizeBytes: file.size,
+    mimeType: file.type,
+    createdAt: new Date().toISOString(),
+    textLength: text.length,
+    preview
+  };
+
+  const items = await readIndex();
+  items.unshift(item);
+  await writeIndex(items);
+
+  return NextResponse.json({
+    ok: true,
+    id,
+    preview,
+    textLength: text.length
+  });
 }

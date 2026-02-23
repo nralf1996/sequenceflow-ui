@@ -51,7 +51,9 @@ export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
 
   try {
-    const body = (await req.json()) as SupportGenerateRequest;
+    const body = (await req.json()) as SupportGenerateRequest & {
+      config?: import("@/lib/support/configLoader").AgentConfig;
+    };
 
     if (!body?.subject || !body?.body) {
       return NextResponse.json(
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const config = await loadAgentConfig();
+    const config = body.config ?? (await loadAgentConfig());
 
     const system = buildSupportSystemPrompt(config);
     const user = buildSupportUserPrompt(body, config);

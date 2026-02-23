@@ -1,10 +1,10 @@
 {
-  "companyName": "YAR TRADING",
-  "tone": "direct",
+  "companyName": "YAR TRADINGg",
+  "tone": "formal",
   "rules": {
     "empathyEnabled": true,
     "allowDiscount": true,
     "maxDiscountAmount": 10
   },
-  "signature": "NOCTIS"
+  "signature": ""
 }

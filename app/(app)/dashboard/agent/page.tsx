@@ -79,6 +79,14 @@ export default function AgentPage() {
           pricePaid: 199,
           currency: "EUR",
         },
+        config: {
+          companyName: config.companyName,
+          tone: config.tone,
+          empathyEnabled: config.rules.empathyEnabled,
+          allowDiscount: config.rules.allowDiscount,
+          maxDiscountAmount: config.rules.maxDiscountAmount ?? 0,
+          signature: config.signature,
+        },
       }),
     });
 

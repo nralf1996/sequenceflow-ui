@@ -26,24 +26,25 @@ export default function KnowledgePage() {
     try {
       const res = await fetch("/api/knowledge", { cache: "no-store" });
       const json = await res.json();
-  
+
       console.log("API RESPONSE:", json);
-  
+
       if (!json.ok) {
         console.error("API not ok");
         return;
       }
-  
+
       if (!Array.isArray(json.items)) {
         console.error("items is not array", json.items);
         return;
       }
-  
+
       setItems(json.items);
     } catch (e) {
       console.error("refresh failed", e);
     }
   }
+
   useEffect(() => {
     refresh();
   }, []);
@@ -99,7 +100,7 @@ export default function KnowledgePage() {
           disabled={!canUpload}
           style={{
             ...styles.primaryButton,
-            opacity: canUpload ? 1 : 0.6,
+            opacity: canUpload ? 1 : 0.5,
           }}
         >
           {uploading ? "Uploading..." : "Upload PDF"}
@@ -110,9 +111,7 @@ export default function KnowledgePage() {
 
       <div style={styles.grid}>
         {items.length === 0 && (
-          <div style={styles.empty}>
-            No documents uploaded yet.
-          </div>
+          <div style={styles.empty}>No documents uploaded yet.</div>
         )}
 
         {items.map((item) => (
@@ -159,54 +158,60 @@ export default function KnowledgePage() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    padding: "48px",
+    padding: "56px 48px",
     maxWidth: "1100px",
     margin: "0 auto",
-    background: "#0f172a",
     minHeight: "100vh",
-    color: "white",
+    background: "var(--bg)",
+    color: "var(--text)",
   },
   header: {
-    marginBottom: "32px",
+    marginBottom: "40px",
   },
   title: {
-    fontSize: "28px",
+    fontSize: "30px",
     fontWeight: 700,
     marginBottom: "8px",
+    color: "var(--text)",
   },
   subtitle: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     fontSize: "14px",
   },
   uploadCard: {
-    background: "#1e293b",
-    padding: "20px",
-    borderRadius: "12px",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    padding: "20px 24px",
+    borderRadius: "16px",
     display: "flex",
     gap: "16px",
     alignItems: "center",
-    marginBottom: "32px",
+    marginBottom: "36px",
   },
   fileInput: {
-    color: "white",
+    color: "var(--text)",
+    flex: 1,
   },
   primaryButton: {
-    background: "#3b82f6",
+    background: "#B4F000",
     border: "none",
-    padding: "10px 16px",
+    padding: "10px 20px",
     borderRadius: "8px",
-    color: "white",
+    color: "#0B1220",
     cursor: "pointer",
-    fontWeight: 600,
+    fontWeight: 700,
+    fontSize: "14px",
+    whiteSpace: "nowrap" as const,
   },
   grid: {
     display: "grid",
-    gap: "20px",
+    gap: "16px",
   },
   card: {
-    background: "#1e293b",
-    padding: "20px",
-    borderRadius: "14px",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    padding: "24px",
+    borderRadius: "16px",
     display: "flex",
     flexDirection: "column",
     gap: "12px",
@@ -214,56 +219,73 @@ const styles: Record<string, React.CSSProperties> = {
   cardHeader: {
     display: "flex",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "12px",
   },
   filename: {
     fontWeight: 600,
+    fontSize: "15px",
+    color: "var(--text)",
   },
   meta: {
     fontSize: "12px",
-    color: "#94a3b8",
+    color: "var(--muted)",
+    whiteSpace: "nowrap" as const,
   },
   stats: {
     fontSize: "12px",
     display: "flex",
     gap: "16px",
-    color: "#94a3b8",
+    color: "var(--muted)",
   },
   preview: {
-    background: "#0f172a",
-    padding: "12px",
-    borderRadius: "8px",
+    background: "var(--bg)",
+    border: "1px solid var(--border)",
+    padding: "12px 14px",
+    borderRadius: "10px",
     fontSize: "12px",
-    maxHeight: "140px",
+    maxHeight: "120px",
     overflow: "auto",
-    whiteSpace: "pre-wrap",
+    whiteSpace: "pre-wrap" as const,
+    color: "var(--muted)",
+    lineHeight: 1.6,
   },
   cardActions: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: "4px",
   },
   link: {
-    color: "#60a5fa",
+    color: "#B4F000",
     fontSize: "13px",
+    fontWeight: 600,
+    textDecoration: "none",
   },
   dangerButton: {
     background: "transparent",
-    border: "1px solid #ef4444",
-    color: "#ef4444",
-    padding: "6px 12px",
+    border: "1px solid var(--border)",
+    color: "var(--muted)",
+    padding: "6px 14px",
     borderRadius: "6px",
     cursor: "pointer",
+    fontSize: "13px",
   },
   empty: {
-    padding: "20px",
-    background: "#1e293b",
-    borderRadius: "12px",
-    color: "#94a3b8",
+    padding: "28px 24px",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "16px",
+    color: "var(--muted)",
+    fontSize: "14px",
   },
   error: {
-    background: "#7f1d1d",
-    padding: "12px",
-    borderRadius: "8px",
-    marginBottom: "20px",
+    background: "rgba(239,68,68,0.12)",
+    border: "1px solid rgba(239,68,68,0.3)",
+    color: "#ef4444",
+    padding: "12px 16px",
+    borderRadius: "10px",
+    marginBottom: "24px",
+    fontSize: "14px",
   },
 };

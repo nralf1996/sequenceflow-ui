@@ -95,22 +95,22 @@ export default function AgentPage() {
     setLoading(false);
   }
 
-  function confidenceColor(score: number) {
-    if (score >= 0.8) return "text-green-400";
-    if (score >= 0.6) return "text-yellow-400";
-    return "text-red-400";
+  function confidenceColor(score: number): string {
+    if (score >= 0.8) return "#B4F000";
+    if (score >= 0.6) return "#eab308";
+    return "#ef4444";
   }
 
   return (
-    <div className="p-10 text-white bg-slate-950 min-h-screen">
+    <div className="p-10 min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <h1 className="text-3xl font-bold mb-8">Support Agent Config</h1>
 
       <div className="grid grid-cols-2 gap-10">
         <div className="space-y-6">
           <div>
-            <label className="block mb-2">Company Name</label>
+            <label className="block mb-2 text-sm font-semibold text-[var(--text)]">Company Name</label>
             <input
-              className="w-full p-2 bg-slate-800 rounded"
+              className="w-full p-2 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
               value={config.companyName}
               onChange={(e) =>
                 setConfig({ ...config, companyName: e.target.value })
@@ -119,9 +119,9 @@ export default function AgentPage() {
           </div>
 
           <div>
-            <label className="block mb-2">Tone</label>
+            <label className="block mb-2 text-sm font-semibold text-[var(--text)]">Tone</label>
             <select
-              className="w-full p-2 bg-slate-800 rounded"
+              className="w-full p-2 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
               value={config.tone}
               onChange={(e) =>
                 setConfig({
@@ -137,10 +137,9 @@ export default function AgentPage() {
           </div>
 
           <div>
-            <label>
+            <label className="flex items-center gap-2 text-sm text-[var(--text)]">
               <input
                 type="checkbox"
-                className="mr-2"
                 checked={config.rules.empathyEnabled}
                 onChange={(e) =>
                   setConfig({
@@ -157,10 +156,9 @@ export default function AgentPage() {
           </div>
 
           <div>
-            <label>
+            <label className="flex items-center gap-2 text-sm text-[var(--text)]">
               <input
                 type="checkbox"
-                className="mr-2"
                 checked={config.rules.allowDiscount}
                 onChange={(e) =>
                   setConfig({
@@ -181,10 +179,10 @@ export default function AgentPage() {
 
           {config.rules.allowDiscount && (
             <div>
-              <label className="block mb-2">Max discount (€)</label>
+              <label className="block mb-2 text-sm font-semibold text-[var(--text)]">Max discount (€)</label>
               <input
                 type="number"
-                className="w-full p-2 bg-slate-800 rounded"
+                className="w-full p-2 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
                 value={config.rules.maxDiscountAmount ?? 0}
                 onChange={(e) =>
                   setConfig({
@@ -200,9 +198,9 @@ export default function AgentPage() {
           )}
 
           <div>
-            <label className="block mb-2">Signature</label>
+            <label className="block mb-2 text-sm font-semibold text-[var(--text)]">Signature</label>
             <textarea
-              className="w-full p-2 bg-slate-800 rounded"
+              className="w-full p-2 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
               value={config.signature}
               onChange={(e) =>
                 setConfig({ ...config, signature: e.target.value })
@@ -214,7 +212,7 @@ export default function AgentPage() {
             <button
               type="button"
               onClick={saveConfig}
-              className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded"
+              className="px-6 py-2 rounded border border-[var(--border)] text-[var(--text)] bg-[var(--surface)] hover:bg-[var(--bg)] transition-colors"
             >
               Save Config
             </button>
@@ -222,48 +220,43 @@ export default function AgentPage() {
             <button
               type="button"
               onClick={generatePreview}
-              className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded"
+              className="px-6 py-2 rounded font-bold transition-colors"
+              style={{ background: "#B4F000", color: "#0B1220" }}
             >
               Generate Preview
             </button>
           </div>
         </div>
 
-        <div className="bg-slate-900 p-6 rounded border border-slate-800">
-          <h2 className="text-xl font-semibold mb-4">AI Preview</h2>
+        <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-2xl">
+          <h2 className="text-xl font-semibold mb-4 text-[var(--text)]">AI Preview</h2>
 
-          {loading && <p className="text-slate-400">Generating...</p>}
+          {loading && <p className="text-[var(--muted)] text-sm">Generating...</p>}
 
           {preview && (
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4 text-sm text-[var(--text)]">
               <div>
                 <strong>Status:</strong>{" "}
-                <span
-                  className={
-                    preview.status === "NEEDS_HUMAN"
-                      ? "text-red-400"
-                      : "text-green-400"
-                  }
-                >
+                <span style={{ color: preview.status === "NEEDS_HUMAN" ? "#ef4444" : "#B4F000", fontWeight: 600 }}>
                   {preview.status}
                 </span>
               </div>
 
               <div>
                 <strong>Confidence:</strong>{" "}
-                <span className={confidenceColor(preview.confidence)}>
+                <span style={{ color: confidenceColor(preview.confidence), fontWeight: 600 }}>
                   {(preview.confidence * 100).toFixed(0)}%
                 </span>
               </div>
 
               <div>
                 <strong>Subject:</strong>
-                <div className="mt-1">{preview.draft?.subject}</div>
+                <div className="mt-1 text-[var(--muted)]">{preview.draft?.subject}</div>
               </div>
 
               <div>
                 <strong>Body:</strong>
-                <div className="mt-1 whitespace-pre-wrap">
+                <div className="mt-1 whitespace-pre-wrap text-[var(--muted)]">
                   {preview.draft?.body}
                 </div>
               </div>
@@ -271,7 +264,7 @@ export default function AgentPage() {
               {preview.reasons?.length > 0 && (
                 <div>
                   <strong>Reasons:</strong>
-                  <ul className="list-disc ml-6 mt-1 text-red-400">
+                  <ul className="list-disc ml-6 mt-1" style={{ color: "#ef4444" }}>
                     {preview.reasons.map((r, i) => (
                       <li key={i}>{r}</li>
                     ))}

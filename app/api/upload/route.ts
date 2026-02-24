@@ -4,8 +4,25 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 
+import { chunkText } from "@/lib/chunkText";
+import { createEmbedding } from "@/lib/embeddings";
+
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const INDEX_PATH = path.join(UPLOADS_DIR, "index.json");
+const VECTOR_PATH = path.join(UPLOADS_DIR, "vector-store.json");
+
+async function readVectorStore() {
+  try {
+    const raw = await fs.readFile(VECTOR_PATH, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+async function writeVectorStore(items: any[]) {
+  await fs.writeFile(VECTOR_PATH, JSON.stringify(items));
+}
 
 function makeId() {
   return crypto.randomUUID();
@@ -72,6 +89,23 @@ export async function POST(req: Request) {
   }
 
   const text = result.text || "";
+
+  const chunks = chunkText(text, 1000, 200);
+  const vectorStore = await readVectorStore();
+
+  for (const chunk of chunks) {
+    const embedding = await createEmbedding(chunk);
+
+    vectorStore.push({
+      documentId: id,
+      chunkId: crypto.randomUUID(),
+      chunk,
+      embedding,
+    });
+  }
+
+  await writeVectorStore(vectorStore);
+
   const preview = text.slice(0, 800);
 
   const item = {

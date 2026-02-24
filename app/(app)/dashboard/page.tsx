@@ -1,13 +1,46 @@
-"use client";
+import fs from "fs/promises";
+import path from "path";
+import type React from "react";
 
-export default function DashboardPage() {
+async function getSystemStatus() {
+  // Knowledge Engine: always active if the page renders
+  const knowledgeEngine = "Active";
+
+  // PDF Extraction: check if index.json exists
+  let pdfExtraction = "Unavailable";
+  try {
+    await fs.access(path.join(process.cwd(), "public", "uploads", "index.json"));
+    pdfExtraction = "Operational";
+  } catch {
+    // file does not exist
+  }
+
+  // Vector Index: check if vector-store.json exists and has entries
+  let vectorIndex = "Not Connected";
+  try {
+    const raw = await fs.readFile(
+      path.join(process.cwd(), "public", "uploads", "vector-store.json"),
+      "utf8"
+    );
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      vectorIndex = "Connected";
+    }
+  } catch {
+    // file missing or invalid
+  }
+
+  return { knowledgeEngine, pdfExtraction, vectorIndex };
+}
+
+export default async function DashboardPage() {
+  const status = await getSystemStatus();
+
   return (
     <div style={styles.page}>
       <div style={styles.header}>
         <h1 style={styles.title}>Dashboard</h1>
-        <p style={styles.subtitle}>
-          Overview of your SupportFlow OS.
-        </p>
+        <p style={styles.subtitle}>Overview of your SupportFlow OS.</p>
       </div>
 
       <div style={styles.grid}>
@@ -22,7 +55,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={styles.card}>
-          <div style={styles.metricValue}>92%</div>
+          <div style={{ ...styles.metricValue, color: "#B4F000" }}>92%</div>
           <div style={styles.metricLabel}>AI Confidence</div>
         </div>
 
@@ -37,18 +70,34 @@ export default function DashboardPage() {
 
         <div style={styles.statusCard}>
           <div style={styles.statusRow}>
-            <span>Knowledge Engine</span>
-            <span style={styles.statusGreen}>Active</span>
+            <span style={styles.statusLabel}>Knowledge Engine</span>
+            <span style={styles.statusGreen}>{status.knowledgeEngine}</span>
           </div>
 
-          <div style={styles.statusRow}>
-            <span>PDF Extraction</span>
-            <span style={styles.statusGreen}>Operational</span>
+          <div style={{ ...styles.statusRow, ...styles.statusDivider }}>
+            <span style={styles.statusLabel}>PDF Extraction</span>
+            <span
+              style={
+                status.pdfExtraction === "Operational"
+                  ? styles.statusGreen
+                  : styles.statusYellow
+              }
+            >
+              {status.pdfExtraction}
+            </span>
           </div>
 
-          <div style={styles.statusRow}>
-            <span>Vector Index</span>
-            <span style={styles.statusYellow}>Not Connected</span>
+          <div style={{ ...styles.statusRow, ...styles.statusDivider }}>
+            <span style={styles.statusLabel}>Vector Index</span>
+            <span
+              style={
+                status.vectorIndex === "Connected"
+                  ? styles.statusGreen
+                  : styles.statusYellow
+              }
+            >
+              {status.vectorIndex}
+            </span>
           </div>
         </div>
       </div>
@@ -58,73 +107,92 @@ export default function DashboardPage() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    padding: "48px",
+    padding: "56px 48px",
     maxWidth: "1100px",
     margin: "0 auto",
     minHeight: "100vh",
-    background: "#0f172a",
-    color: "white",
+    background: "var(--bg)",
+    color: "var(--text)",
   },
   header: {
-    marginBottom: "32px",
+    marginBottom: "40px",
   },
   title: {
-    fontSize: "28px",
+    fontSize: "30px",
     fontWeight: 700,
     marginBottom: "8px",
+    color: "var(--text)",
   },
   subtitle: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     fontSize: "14px",
   },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "20px",
-    marginBottom: "40px",
+    marginBottom: "48px",
   },
   card: {
-    background: "#1e293b",
-    padding: "24px",
-    borderRadius: "14px",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    padding: "28px 24px",
+    borderRadius: "16px",
     display: "flex",
     flexDirection: "column",
-    gap: "6px",
+    gap: "8px",
   },
   metricValue: {
-    fontSize: "26px",
+    fontSize: "28px",
     fontWeight: 700,
+    color: "var(--text)",
   },
   metricLabel: {
     fontSize: "13px",
-    color: "#94a3b8",
+    color: "var(--muted)",
   },
   section: {
-    marginTop: "20px",
+    marginTop: "8px",
   },
   sectionTitle: {
-    fontSize: "18px",
+    fontSize: "17px",
+    fontWeight: 600,
     marginBottom: "16px",
+    color: "var(--text)",
   },
   statusCard: {
-    background: "#1e293b",
-    padding: "20px",
-    borderRadius: "14px",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    padding: "8px 0",
+    borderRadius: "16px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
   },
   statusRow: {
     display: "flex",
     justifyContent: "space-between",
+    alignItems: "center",
     fontSize: "14px",
+    padding: "14px 24px",
+  },
+  statusDivider: {
+    borderTop: "1px solid var(--border)",
+  },
+  statusLabel: {
+    color: "var(--text)",
   },
   statusGreen: {
-    color: "#22c55e",
+    color: "#B4F000",
     fontWeight: 600,
+    fontSize: "12px",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
   },
   statusYellow: {
     color: "#eab308",
     fontWeight: 600,
+    fontSize: "12px",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
   },
 };

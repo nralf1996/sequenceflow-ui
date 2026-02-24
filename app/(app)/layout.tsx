@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { Sidebar } from "@/components/Sidebar";
 
 export default function AppLayout({
   children,
@@ -6,22 +7,14 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      
-      {/* Sidebar */}
-      <aside style={{ width: "250px", background: "#111", color: "white", padding: "20px" }}>
-        <h2>SequenceFlow</h2>
-        <nav style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <Link href="/dashboard">Dashboard</Link>
-          <Link href="/knowledge">Knowledge</Link>
-          <Link href="/test-ai">Test AI</Link>
-        </nav>
-      </aside>
+    <ThemeProvider>
+      <div className="transition-colors duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]" style={{ display: "flex", height: "100vh" }}>
+        <Sidebar />
 
-      {/* Main content */}
-      <main style={{ flex: 1, padding: "40px" }}>
-        {children}
-      </main>
-    </div>
+        <main className="transition-colors duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]" style={{ flex: 1, padding: "40px", overflow: "auto", background: "var(--bg)" }}>
+          {children}
+        </main>
+      </div>
+    </ThemeProvider>
   );
 }

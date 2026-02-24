@@ -25,3 +25,7 @@ yarn-error.log*
 # OS
 .DS_Store
 EOF
+
+data/*.jsonl
+data/support-logs.jsonl
+public/uploads/

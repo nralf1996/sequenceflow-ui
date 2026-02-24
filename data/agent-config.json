@@ -1,10 +1,10 @@
 {
-  "companyName": "YAR TRADINGg",
+  "companyName": "SequenceFlow",
   "tone": "formal",
   "rules": {
     "empathyEnabled": true,
     "allowDiscount": true,
     "maxDiscountAmount": 10
   },
-  "signature": ""
+  "signature": "SequenceFlow\nTommy Ralf"
 }

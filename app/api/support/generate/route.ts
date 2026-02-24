@@ -6,29 +6,34 @@ import OpenAI from "openai";
 
 import { createEmbedding } from "@/lib/embeddings";
 import { cosineSimilarity } from "@/lib/similarity";
-
 import { loadAgentConfig } from "@/lib/support/configLoader";
 import {
   buildSupportSystemPrompt,
   buildSupportUserPrompt,
 } from "@/lib/support/promptBuilder";
 import { validateSupportResponse } from "@/lib/support/validateSupportResponse";
-import type {
-  SupportGenerateRequest,
-  SupportGenerateResponse,
-} from "@/types/support";
+import type { SupportGenerateRequest } from "@/types/support";
 import { maskEmail } from "@/types/support";
 
 export const runtime = "nodejs";
 
 const LOG_PATH = path.join(process.cwd(), "data", "support-logs.jsonl");
-
 const VECTOR_PATH = path.join(
   process.cwd(),
   "public",
   "uploads",
   "vector-store.json"
 );
+
+function clamp01(n: number) {
+  return Math.max(0, Math.min(1, n));
+}
+
+async function appendLog(line: object) {
+  await fs.appendFile(LOG_PATH, JSON.stringify(line) + "\n", "utf-8").catch(
+    () => {}
+  );
+}
 
 async function readVectorStore() {
   try {
@@ -39,220 +44,233 @@ async function readVectorStore() {
   }
 }
 
-function clamp01(n: number) {
-  return Math.max(0, Math.min(1, n));
-}
-
-async function appendLog(line: object) {
-  await fs.appendFile(LOG_PATH, JSON.stringify(line) + "\n", "utf-8");
-}
-
 function extractAndParseJSON(raw: string) {
-  let cleaned = raw.trim();
-  cleaned = cleaned.replace(/```json/gi, "");
-  cleaned = cleaned.replace(/```/g, "");
-  cleaned = cleaned.trim();
-
+  let cleaned = raw
+    .trim()
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
-
   if (firstBrace === -1 || lastBrace === -1) {
     throw new Error("No JSON found in model response.");
   }
-
-  cleaned = cleaned.slice(firstBrace, lastBrace + 1);
-
-  return JSON.parse(cleaned);
+  return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
 }
+
+// ─── Damage keywords ──────────────────────────────────────────────────────────
+const DAMAGE_KEYWORDS = [
+  "beschadigd",
+  "kapot",
+  "defect",
+  "ingedeukt",
+  "scheur",
+  "kras",
+  "damaged",
+  "broken",
+];
+
+// ─── Retrieval thresholds ─────────────────────────────────────────────────────
+const HIGH_THRESHOLD = 0.6;
+const MEDIUM_THRESHOLD = 0.4;
 
 export async function POST(req: Request) {
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
 
   try {
-    const body = (await req.json()) as SupportGenerateRequest & {
-      config?: import("@/lib/support/configLoader").AgentConfig;
-    };
+    const data = await req.json();
 
-    if (!body?.subject || !body?.body) {
+    console.log("=== FULL REQUEST BODY ===");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("=== END REQUEST BODY ===");
+
+    // ── Input mapping ────────────────────────────────────────────────────────
+    const subject: string = (data.subject || "").trim();
+    const ticketBody: string = (data.body || data.snippet || "").trim();
+    const customerName: string = data.customer?.name || data.from || "";
+    const config = data.config ?? (await loadAgentConfig());
+
+    if (!subject && !ticketBody) {
       return NextResponse.json(
         { error: "Missing subject/body" },
         { status: 400 }
       );
     }
 
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    const text = `${subject} ${ticketBody}`.toLowerCase();
 
-    const config = body.config ?? (await loadAgentConfig());
+    // ── STEP A: Damage rule (deterministic) ──────────────────────────────────
+    const damageMatch = DAMAGE_KEYWORDS.find((k) => text.includes(k));
 
-    const vectorStore = await readVectorStore();
+    if (damageMatch) {
+      const replyBody =
+        `Beste ${customerName || "klant"},\n\n` +
+        `Wat vervelend om te horen dat uw product beschadigd is aangekomen. ` +
+        `Onze excuses voor het ongemak.\n\n` +
+        `We lossen dit direct voor u op:\n` +
+        `- We sturen kosteloos een vervangend exemplaar naar u op.\n` +
+        `- U hoeft het beschadigde product niet terug te sturen.\n` +
+        `- U ontvangt binnen 24 uur een bevestiging met de verzendinformatie.\n\n` +
+        `Mocht u nog vragen hebben, staat ons team voor u klaar.\n\n` +
+        `Met vriendelijke groet,\n` +
+        `${config?.companyName || "Support Team"}`;
 
-    const queryText = body.subject + "\n\n" + body.body;
-    const queryEmbedding = await createEmbedding(queryText);
+      console.log(
+        `[generate] route=AUTO_REPLY confidence=0.95 hasKnowledge=false`
+      );
 
-    const scored = vectorStore.map((item: any) => ({
-      chunk: item.chunk,
-      score: cosineSimilarity(queryEmbedding, item.embedding),
-      documentId: item.documentId as string,
-      chunkId: item.chunkId as string,
-    }));
+      await appendLog({
+        ts: new Date().toISOString(),
+        requestId,
+        latencyMs: Date.now() - startedAt,
+        route: "AUTO_REPLY",
+        confidence: 0.95,
+        subject: subject.slice(0, 120),
+      });
 
-    scored.sort((a: any, b: any) => b.score - a.score);
-
-    console.log(
-      "Top similarity debug:",
-      scored.slice(0, 3).map(s => ({
-        score: s.score,
-        preview: s.chunk.slice(0, 120)
-      }))
-    );
-
-    const HIGH_THRESHOLD = 0.60;
-    const MEDIUM_THRESHOLD = 0.40;
-
-    const highMatches = scored.filter((s: any) => s.score >= HIGH_THRESHOLD);
-    const mediumMatches = scored.filter(
-      (s: any) => s.score >= MEDIUM_THRESHOLD && s.score < HIGH_THRESHOLD
-    );
-
-    type ScoredItem = { chunk: string; score: number; documentId: string; chunkId: string };
-    let topItems: ScoredItem[] = [];
-    let retrievalMode: "HIGH" | "MEDIUM" | "LOW" = "LOW";
-
-    if (highMatches.length > 0) {
-      topItems = highMatches.slice(0, 5);
-      retrievalMode = "HIGH";
-    } else if (mediumMatches.length > 0) {
-      topItems = mediumMatches.slice(0, 5);
-      retrievalMode = "MEDIUM";
-    }
-
-    const topChunks = topItems.map((s) => s.chunk);
-
-    console.log("Retrieval mode:", retrievalMode);
-    console.log(
-      "Top similarity:",
-      scored.length ? scored[0].score : "none"
-    );
-
-    const highestScore = scored.length ? scored[0].score : 0;
-
-    let confidence = 0.4;
-
-    if (retrievalMode === "HIGH") {
-      confidence = Math.min(0.95, 0.75 + (highestScore - 0.6));
-    }
-
-    if (retrievalMode === "MEDIUM") {
-      confidence = Math.min(0.75, 0.5 + (highestScore - 0.4));
-    }
-
-    const knowledgeContext = topChunks.join("\n\n---\n\n");
-
-    if (retrievalMode === "LOW") {
       return NextResponse.json({
-        status: "NEEDS_HUMAN",
-        confidence: 0.4,
+        status: "AUTO_REPLY",
+        confidence: 0.95,
+        routing: "AUTO_REPLY",
         draft: {
-          subject: `Re: ${body.subject}`,
-          body:
-            "Uw vraag bevat onvoldoende specifieke informatie of valt buiten de beschikbare kennisbasis. Deze ticket wordt doorgestuurd naar een medewerker.",
+          subject: `Re: ${subject}`,
+          body: replyBody,
         },
-        routing: "NEEDS_HUMAN" as const,
         knowledge: {
           used: false,
-          topSimilarity: highestScore,
+          topSimilarity: null,
           sources: [],
         },
       });
     }
 
+    // ── STEP B: Knowledge retrieval ──────────────────────────────────────────
+    type ScoredItem = {
+      chunk: string;
+      score: number;
+      documentId: string;
+      chunkId: string;
+    };
+
+    let topItems: ScoredItem[] = [];
+    let highestScore = 0;
+
+    const vectorStore = await readVectorStore();
+
+    if (vectorStore.length > 0) {
+      const queryEmbedding = await createEmbedding(`${subject} ${ticketBody}`);
+
+      const scored: ScoredItem[] = vectorStore.map((item: any) => ({
+        chunk: item.chunk,
+        score: cosineSimilarity(queryEmbedding, item.embedding),
+        documentId: item.documentId as string,
+        chunkId: item.chunkId as string,
+      }));
+
+      scored.sort((a, b) => b.score - a.score);
+      highestScore = scored[0]?.score ?? 0;
+
+      const highMatches = scored.filter((s) => s.score >= HIGH_THRESHOLD);
+      const mediumMatches = scored.filter(
+        (s) => s.score >= MEDIUM_THRESHOLD && s.score < HIGH_THRESHOLD
+      );
+
+      if (highMatches.length > 0) {
+        topItems = highMatches.slice(0, 5);
+      } else if (mediumMatches.length > 0) {
+        topItems = mediumMatches.slice(0, 5);
+      }
+    }
+
+    const usedKnowledge = topItems.length > 0;
+    const knowledgeContext = topItems.map((s) => s.chunk).join("\n\n---\n\n");
+
+    // ── STEP C: LLM generate ─────────────────────────────────────────────────
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const ticketReq: SupportGenerateRequest = {
+      subject,
+      body: ticketBody,
+      channel: data.channel,
+      customer: data.customer,
+      order: data.order,
+    };
+
     const baseSystem = buildSupportSystemPrompt(config);
-
-    const system = `
-${baseSystem}
-
-Relevant internal knowledge:
-${knowledgeContext}
-`;
-
-    const user = buildSupportUserPrompt(body, config);
+    const systemPrompt = usedKnowledge
+      ? `${baseSystem}\n\nRelevante interne kennis:\n${knowledgeContext}`
+      : baseSystem;
+    const userPrompt = buildSupportUserPrompt(ticketReq, config);
 
     const completion = await client.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
-      max_completion_tokens: 500,
+      max_completion_tokens: 600,
     });
 
     const raw = completion.choices?.[0]?.message?.content;
-
-    if (!raw) {
-      throw new Error("Model returned empty content.");
-    }
+    if (!raw) throw new Error("Model returned empty content.");
 
     const parsed = extractAndParseJSON(raw);
+    const validated = validateSupportResponse(parsed);
 
-    let validated: SupportGenerateResponse =
-      validateSupportResponse(parsed);
-
+    // ── STEP D: Confidence scoring ───────────────────────────────────────────
     const llmConfidence = clamp01(validated.confidence);
+    const finalConfidence = usedKnowledge
+      ? clamp01(highestScore * 0.6 + llmConfidence * 0.4)
+      : llmConfidence;
 
-    // Keep internal validation logic intact
+    // ── STEP E: Routing ──────────────────────────────────────────────────────
+    const needsHuman =
+      finalConfidence < 0.6 || validated.status === "NEEDS_HUMAN";
+    const routing: "AUTO" | "HUMAN_REVIEW" = needsHuman
+      ? "HUMAN_REVIEW"
+      : "AUTO";
+
+    // Append signature
+    if (config?.signature?.trim()) {
+      validated.draft.body =
+        validated.draft.body.trim() + "\n\n" + config.signature.trim();
+    }
+
+    // Filter disallowed actions
     if (!config.allowDiscount) {
       validated.actions = validated.actions.filter(
-        (a) => a.type !== "OFFER_DISCOUNT"
+        (a: any) => a.type !== "OFFER_DISCOUNT"
       );
     }
 
-    if (
-      validated.draft.body &&
-      config.signature &&
-      !validated.draft.body.includes(config.signature)
-    ) {
-      validated.draft.body =
-        validated.draft.body + "\n\n" + config.signature;
-    }
-
-    // New confidence model: topSimilarity drives 60%, LLM drives 40%
-    const finalConfidence = clamp01(highestScore * 0.6 + llmConfidence * 0.4);
-
-    const routing: "AUTO" | "HUMAN_REVIEW" =
-      finalConfidence >= 0.65 ? "AUTO" : "HUMAN_REVIEW";
-
-    const latencyMs = Date.now() - startedAt;
+    console.log(
+      `[generate] route=${routing} confidence=${finalConfidence.toFixed(2)} hasKnowledge=${usedKnowledge}`
+    );
 
     await appendLog({
       ts: new Date().toISOString(),
       requestId,
-      latencyMs,
-      status: validated.status,
+      latencyMs: Date.now() - startedAt,
+      route: routing,
       confidence: finalConfidence,
       model: completion.model,
-      subject: body.subject.slice(0, 120),
-      customerEmail: maskEmail(body.customer?.email),
+      subject: subject.slice(0, 120),
+      customerEmail: maskEmail(data.customer?.email),
     });
 
     return NextResponse.json({
+      status: validated.status,
+      confidence: finalConfidence,
       routing,
       draft: validated.draft,
-      confidence: {
-        final: finalConfidence,
-        llm: llmConfidence,
-        retrieval: highestScore,
-      },
-      retrieval: {
-        mode: retrievalMode,
-        topSimilarity: highestScore,
-        usedKnowledge: topItems.length > 0,
-      },
-      meta: {
-        model: completion.model,
-        latencyMs,
+      knowledge: {
+        used: usedKnowledge,
+        topSimilarity: highestScore || null,
+        sources: topItems.map((s) => ({
+          documentId: s.documentId,
+          chunkId: s.chunkId,
+        })),
       },
     });
   } catch (err: any) {
@@ -262,13 +280,10 @@ ${knowledgeContext}
       ts: new Date().toISOString(),
       requestId,
       latencyMs: Date.now() - startedAt,
-      status: "ERROR",
+      route: "ERROR",
       error: errorMessage,
     });
 
-    return NextResponse.json(
-      { error: errorMessage, requestId },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -1,0 +1,22 @@
+{
+  "damaged": {
+    "subjectPrefix": "Re: ",
+    "body": "Beste {{customerName}},\n\nWat vervelend om te horen dat uw bestelling beschadigd is aangekomen.\n\nKunt u ons het ordernummer en 1-2 foto's van de schade sturen? Dan lossen wij dit direct voor u op.\n\nMet vriendelijke groet,"
+  },
+  "late_delivery": {
+    "subjectPrefix": "Re: ",
+    "body": "Beste {{customerName}},\n\nWat vervelend dat uw bestelling nog niet is aangekomen.\n\nKunt u ons uw ordernummer sturen? Dan kijken wij direct de status na en koppelen dit aan u terug.\n\nMet vriendelijke groet,"
+  },
+  "missing_items": {
+    "subjectPrefix": "Re: ",
+    "body": "Beste {{customerName}},\n\nDank voor uw bericht. Het spijt ons dat er iets ontbreekt in uw levering.\n\nKunt u ons uw ordernummer en welke onderdelen ontbreken sturen? Dan lossen wij dit direct op.\n\nMet vriendelijke groet,"
+  },
+  "return": {
+    "subjectPrefix": "Re: ",
+    "body": "Beste {{customerName}},\n\nU kunt uw bestelling retourneren via onze retourprocedure.\n\nStuur ons uw ordernummer, dan sturen wij u direct de retourinstructies.\n\nMet vriendelijke groet,"
+  },
+  "other": {
+    "subjectPrefix": "Re: ",
+    "body": "Beste {{customerName}},\n\nDank voor uw bericht.\n\nKunt u ons uw ordernummer en het bestelde product doorgeven? Dan helpen wij u direct verder.\n\nMet vriendelijke groet,"
+  }
+}

@@ -44,6 +44,13 @@ async function readVectorStore() {
   }
 }
 
+function extractEmail(value: any): string {
+  const str = String(value ?? "").trim();
+  if (!str) return "";
+  const match = str.match(/<([^>]+)>/);
+  return (match?.[1] ?? str).trim();
+}
+
 function extractAndParseJSON(raw: string) {
   let cleaned = raw
     .trim()
@@ -87,8 +94,19 @@ export async function POST(req: Request) {
 
     // ── Input mapping ────────────────────────────────────────────────────────
     const subject: string = (data.subject || "").trim();
-    const ticketBody: string = (data.body || data.snippet || "").trim();
-    const customerName: string = data.customer?.name || data.from || "";
+    const ticketBody: string = (
+      data.body ??
+      data.text ??
+      data.snippet ??
+      ""
+    ).trim();
+    const from: string = extractEmail(
+      data.from ??
+      data.From ??
+      data.sender ??
+      data.email
+    );
+    const customerName: string = data.customer?.name || from || "";
     const config = data.config ?? (await loadAgentConfig());
 
     if (!subject && !ticketBody) {
@@ -104,7 +122,7 @@ export async function POST(req: Request) {
     const damageMatch = DAMAGE_KEYWORDS.find((k) => text.includes(k));
 
     if (damageMatch) {
-      const replyBody =
+      let replyBody =
         `Beste ${customerName || "klant"},\n\n` +
         `Wat vervelend om te horen dat uw product beschadigd is aangekomen. ` +
         `Onze excuses voor het ongemak.\n\n` +
@@ -112,9 +130,11 @@ export async function POST(req: Request) {
         `- We sturen kosteloos een vervangend exemplaar naar u op.\n` +
         `- U hoeft het beschadigde product niet terug te sturen.\n` +
         `- U ontvangt binnen 24 uur een bevestiging met de verzendinformatie.\n\n` +
-        `Mocht u nog vragen hebben, staat ons team voor u klaar.\n\n` +
-        `Met vriendelijke groet,\n` +
-        `${config?.companyName || "Support Team"}`;
+        `Mocht u nog vragen hebben, staat ons team voor u klaar.`;
+
+      if (config?.signature?.trim()) {
+        replyBody = replyBody + "\n\n" + config.signature.trim();
+      }
 
       console.log(
         `[generate] route=AUTO_REPLY confidence=0.95 hasKnowledge=false`
@@ -136,6 +156,7 @@ export async function POST(req: Request) {
         draft: {
           subject: `Re: ${subject}`,
           body: replyBody,
+          from,
         },
         knowledge: {
           used: false,
@@ -263,7 +284,7 @@ export async function POST(req: Request) {
       status: validated.status,
       confidence: finalConfidence,
       routing,
-      draft: validated.draft,
+      draft: { ...validated.draft, from },
       knowledge: {
         used: usedKnowledge,
         topSimilarity: highestScore || null,

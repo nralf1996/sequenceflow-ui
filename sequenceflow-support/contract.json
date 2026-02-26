@@ -1,0 +1,18 @@
+{
+  "input": {
+    "subject": "string",
+    "from": "string",
+    "snippet": "string",
+    "text": "string",
+    "customerName": "string|null",
+    "intent": "damaged | late_delivery | missing_items | return | order_status | other",
+    "route": "template | http",
+    "shouldProcess": "boolean"
+  },
+  "output": {
+    "draft": {
+      "subject": "string",
+      "body": "string"
+    }
+  }
+}

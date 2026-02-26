@@ -1,10 +1,6 @@
 {
-  "companyName": "SequenceFlow",
-  "tone": "formal",
-  "rules": {
-    "empathyEnabled": true,
-    "allowDiscount": true,
-    "maxDiscountAmount": 10
-  },
+  "empathyEnabled": true,
+  "allowDiscount": false,
+  "maxDiscountAmount": 0,
   "signature": "SequenceFlow\nTommy Ralf"
 }

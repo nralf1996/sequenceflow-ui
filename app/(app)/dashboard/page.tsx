@@ -44,22 +44,22 @@ export default async function DashboardPage() {
       </div>
 
       <div style={styles.grid}>
-        <div style={styles.card}>
+        <div style={styles.card} className="card-hover">
           <div style={styles.metricValue}>12</div>
           <div style={styles.metricLabel}>Documents</div>
         </div>
 
-        <div style={styles.card}>
+        <div style={styles.card} className="card-hover">
           <div style={styles.metricValue}>8,987</div>
           <div style={styles.metricLabel}>Total Characters</div>
         </div>
 
-        <div style={styles.card}>
+        <div style={styles.card} className="card-hover">
           <div style={{ ...styles.metricValue, color: "#B4F000" }}>92%</div>
           <div style={styles.metricLabel}>AI Confidence</div>
         </div>
 
-        <div style={styles.card}>
+        <div style={styles.card} className="card-hover">
           <div style={styles.metricValue}>1.8s</div>
           <div style={styles.metricLabel}>Avg Response Time</div>
         </div>
@@ -107,64 +107,69 @@ export default async function DashboardPage() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    padding: "56px 48px",
-    maxWidth: "1100px",
+    padding: "52px 44px",
+    maxWidth: "960px",
     margin: "0 auto",
     minHeight: "100vh",
     background: "var(--bg)",
     color: "var(--text)",
   },
   header: {
-    marginBottom: "40px",
+    marginBottom: "48px",
   },
   title: {
-    fontSize: "30px",
-    fontWeight: 700,
-    marginBottom: "8px",
+    fontSize: "26px",
+    fontWeight: 600,
+    marginBottom: "6px",
     color: "var(--text)",
+    letterSpacing: "-0.02em",
   },
   subtitle: {
     color: "var(--muted)",
     fontSize: "14px",
+    lineHeight: 1.5,
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "20px",
-    marginBottom: "48px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "16px",
+    marginBottom: "52px",
   },
   card: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
     padding: "28px 24px",
-    borderRadius: "16px",
+    borderRadius: "14px",
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
+    gap: "6px",
   },
   metricValue: {
-    fontSize: "28px",
-    fontWeight: 700,
+    fontSize: "26px",
+    fontWeight: 600,
     color: "var(--text)",
+    letterSpacing: "-0.02em",
   },
   metricLabel: {
-    fontSize: "13px",
+    fontSize: "12px",
     color: "var(--muted)",
+    letterSpacing: "0.01em",
   },
   section: {
     marginTop: "8px",
   },
   sectionTitle: {
-    fontSize: "17px",
+    fontSize: "15px",
     fontWeight: 600,
-    marginBottom: "16px",
+    marginBottom: "14px",
     color: "var(--text)",
+    letterSpacing: "-0.01em",
   },
   statusCard: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
-    padding: "8px 0",
-    borderRadius: "16px",
+    padding: "4px 0",
+    borderRadius: "14px",
     display: "flex",
     flexDirection: "column",
   },
@@ -172,7 +177,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    fontSize: "14px",
+    fontSize: "13px",
     padding: "14px 24px",
   },
   statusDivider: {
@@ -184,15 +189,15 @@ const styles: Record<string, React.CSSProperties> = {
   statusGreen: {
     color: "#B4F000",
     fontWeight: 600,
-    fontSize: "12px",
-    letterSpacing: "0.04em",
+    fontSize: "11px",
+    letterSpacing: "0.06em",
     textTransform: "uppercase",
   },
   statusYellow: {
     color: "#eab308",
     fontWeight: 600,
-    fontSize: "12px",
-    letterSpacing: "0.04em",
+    fontSize: "11px",
+    letterSpacing: "0.06em",
     textTransform: "uppercase",
   },
 };

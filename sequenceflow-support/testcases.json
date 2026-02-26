@@ -1,0 +1,64 @@
+{
+  "cases": [
+    {
+      "subject": "Mijn pakket is beschadigd aangekomen",
+      "from": "jan.dekker@gmail.com",
+      "snippet": "Goedemiddag, ik heb zojuist mijn pakket ontvangen maar het is duidelijk beschadigd.",
+      "text": "Goedemiddag, ik heb zojuist mijn pakket ontvangen maar het is duidelijk beschadigd. De doos is ingedeukt en een van de producten is kapot. Kunt u mij helpen? Ordernummer: 4839201.",
+      "customerName": "Jan Dekker",
+      "intent": "damaged",
+      "route": "template",
+      "shouldProcess": true
+    },
+    {
+      "subject": "Bestelling al 10 dagen onderweg",
+      "from": "sarah.vanderberg@hotmail.com",
+      "snippet": "Hallo, ik wacht nu al meer dan 10 dagen op mijn bestelling maar heb nog niets ontvangen.",
+      "text": "Hallo, ik wacht nu al meer dan 10 dagen op mijn bestelling maar heb nog niets ontvangen. De verwachte levertijd was 3-5 werkdagen. Kan iemand kijken wat er aan de hand is? Mijn ordernummer is 5027364.",
+      "customerName": "Sarah van den Berg",
+      "intent": "late_delivery",
+      "route": "template",
+      "shouldProcess": true
+    },
+    {
+      "subject": "Onderdeel ontbreekt in mijn levering",
+      "from": "peter.smit@outlook.com",
+      "snippet": "Goedemorgen, ik heb mijn bestelling ontvangen maar er ontbreekt een onderdeel.",
+      "text": "Goedemorgen, ik heb mijn bestelling ontvangen maar er ontbreekt een onderdeel. Ik had twee artikelen besteld maar er zat er maar één in de doos. Het ontbrekende artikel is de oplader. Ordernummer: 6112847.",
+      "customerName": "Peter Smit",
+      "intent": "missing_items",
+      "route": "template",
+      "shouldProcess": true
+    },
+    {
+      "subject": "Retour aanvragen voor mijn bestelling",
+      "from": "lisa.jansen@gmail.com",
+      "snippet": "Hoi, ik wil graag mijn bestelling retourneren omdat het niet aan mijn verwachtingen voldoet.",
+      "text": "Hoi, ik wil graag mijn bestelling retourneren omdat het niet aan mijn verwachtingen voldoet. Het product ziet er anders uit dan op de foto. Hoe kan ik een retour aanvragen? Ordernummer: 7203958.",
+      "customerName": "Lisa Jansen",
+      "intent": "return",
+      "route": "template",
+      "shouldProcess": true
+    },
+    {
+      "subject": "Status van mijn bestelling opvragen",
+      "from": "mark.verhoeven@gmail.com",
+      "snippet": "Dag, ik vraag me af wat de huidige status is van mijn bestelling.",
+      "text": "Dag, ik vraag me af wat de huidige status is van mijn bestelling. Ik heb geen track & trace e-mail ontvangen en weet niet of mijn pakket al onderweg is. Ordernummer: 8374621.",
+      "customerName": "Mark Verhoeven",
+      "intent": "order_status",
+      "route": "http",
+      "shouldProcess": true
+    },
+    {
+      "subject": "Vraag over garantie op mijn product",
+      "from": "annemarie.bosch@ziggo.nl",
+      "snippet": "Goedemiddag, ik heb een vraag over de garantieperiode van het product dat ik bij u heb gekocht.",
+      "text": "Goedemiddag, ik heb een vraag over de garantieperiode van het product dat ik bij u heb gekocht. Na twee maanden gebruik doet het apparaat het niet meer goed. Valt dit onder de garantie en zo ja, hoe maak ik hier gebruik van? Ordernummer: 9401275.",
+      "customerName": "Annemarie Bosch",
+      "intent": "other",
+      "route": "template",
+      "shouldProcess": true
+    }
+  ]
+}

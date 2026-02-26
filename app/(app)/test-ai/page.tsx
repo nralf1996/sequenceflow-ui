@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 
 type Config = {
-  companyName: string;
-  tone: "friendly" | "formal" | "direct";
   rules: {
     empathyEnabled: boolean;
     allowDiscount: boolean;
@@ -14,31 +12,16 @@ type Config = {
 };
 
 type PreviewResponse = {
-  routing?: "AUTO" | "HUMAN_REVIEW";
+  routing?: string;
   draft: {
     subject: string;
     body: string;
   };
-  confidence?: {
-    final: number;
-    llm: number;
-    retrieval: number;
-  };
-  retrieval?: {
-    mode?: string;
-    topSimilarity?: number;
-    usedKnowledge?: boolean;
-  };
-  meta?: {
-    model: string;
-    latencyMs: number;
-  };
+  confidence?: number;
 };
 
 export default function TestAIPage() {
   const [config, setConfig] = useState<Config>({
-    companyName: "",
-    tone: "friendly",
     rules: {
       empathyEnabled: true,
       allowDiscount: false,
@@ -49,27 +32,53 @@ export default function TestAIPage() {
 
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [discountModal, setDiscountModal] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const res = await fetch("/api/agent-config");
-      const data = await res.json();
-      setConfig(data);
-    }
-    load();
+    fetch("/api/agent-config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) setConfig(data);
+      });
   }, []);
 
   async function saveConfig() {
-    await fetch("/api/agent-config", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
-    });
+    setSaveState("saving");
+    try {
+      const res = await fetch("/api/agent-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      setSaveState(res.ok ? "saved" : "error");
+    } catch {
+      setSaveState("error");
+    } finally {
+      setTimeout(() => setSaveState("idle"), 2000);
+    }
   }
 
   async function generatePreview() {
     setLoading(true);
     setPreview(null);
+
+    // Always read latest saved config before generating
+    let latestConfig = config;
+    try {
+      const configRes = await fetch("/api/agent-config");
+      if (configRes.ok) {
+        const data = await configRes.json();
+        if (!data.error) {
+          latestConfig = data;
+          setConfig(data);
+        }
+      }
+    } catch {
+      // fall back to local state
+    }
 
     const res = await fetch("/api/support/generate", {
       method: "POST",
@@ -90,12 +99,10 @@ export default function TestAIPage() {
           currency: "EUR",
         },
         config: {
-          companyName: config.companyName,
-          tone: config.tone,
-          empathyEnabled: config.rules.empathyEnabled,
-          allowDiscount: config.rules.allowDiscount,
-          maxDiscountAmount: config.rules.maxDiscountAmount ?? 0,
-          signature: config.signature,
+          empathyEnabled: latestConfig.rules.empathyEnabled,
+          allowDiscount: latestConfig.rules.allowDiscount,
+          maxDiscountAmount: latestConfig.rules.maxDiscountAmount ?? 0,
+          signature: latestConfig.signature,
         },
       }),
     });
@@ -111,8 +118,56 @@ export default function TestAIPage() {
     return "#ef4444";
   }
 
+  const saveLabel =
+    saveState === "saving"
+      ? "Saving..."
+      : saveState === "saved"
+        ? "Saved ✓"
+        : saveState === "error"
+          ? "Save failed"
+          : "Save Config";
+
   return (
     <div style={styles.page}>
+      {/* Discount confirmation modal */}
+      {discountModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h3 style={styles.modalTitle}>Allow Discounts?</h3>
+            <p style={styles.modalText}>
+              Are you sure you want to allow the AI to offer discounts to
+              customers?
+            </p>
+            <div style={styles.modalActions}>
+              <button
+                style={styles.secondaryButton}
+                className="btn-secondary"
+                onClick={() => setDiscountModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={styles.primaryButton}
+                className="btn-primary"
+                onClick={() => {
+                  setConfig({
+                    ...config,
+                    rules: {
+                      ...config.rules,
+                      allowDiscount: true,
+                      maxDiscountAmount: config.rules.maxDiscountAmount ?? 10,
+                    },
+                  });
+                  setDiscountModal(false);
+                }}
+              >
+                Yes, allow
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={styles.header}>
         <h1 style={styles.title}>Test AI</h1>
         <p style={styles.subtitle}>
@@ -123,32 +178,6 @@ export default function TestAIPage() {
       <div style={styles.layout}>
         {/* Config panel */}
         <div style={styles.configPanel}>
-          <div style={styles.field}>
-            <label style={styles.label}>Company Name</label>
-            <input
-              style={styles.input}
-              value={config.companyName}
-              onChange={(e) =>
-                setConfig({ ...config, companyName: e.target.value })
-              }
-            />
-          </div>
-
-          <div style={styles.field}>
-            <label style={styles.label}>Tone</label>
-            <select
-              style={styles.input}
-              value={config.tone}
-              onChange={(e) =>
-                setConfig({ ...config, tone: e.target.value as Config["tone"] })
-              }
-            >
-              <option value="friendly">Friendly</option>
-              <option value="formal">Formal</option>
-              <option value="direct">Direct</option>
-            </select>
-          </div>
-
           <div style={styles.checkboxRow}>
             <input
               type="checkbox"
@@ -157,7 +186,10 @@ export default function TestAIPage() {
               onChange={(e) =>
                 setConfig({
                   ...config,
-                  rules: { ...config.rules, empathyEnabled: e.target.checked },
+                  rules: {
+                    ...config.rules,
+                    empathyEnabled: e.target.checked,
+                  },
                 })
               }
             />
@@ -171,18 +203,20 @@ export default function TestAIPage() {
               type="checkbox"
               id="discount"
               checked={config.rules.allowDiscount}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  rules: {
-                    ...config.rules,
-                    allowDiscount: e.target.checked,
-                    maxDiscountAmount: e.target.checked
-                      ? config.rules.maxDiscountAmount ?? 10
-                      : null,
-                  },
-                })
-              }
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setDiscountModal(true);
+                } else {
+                  setConfig({
+                    ...config,
+                    rules: {
+                      ...config.rules,
+                      allowDiscount: false,
+                      maxDiscountAmount: null,
+                    },
+                  });
+                }
+              }}
             />
             <label htmlFor="discount" style={styles.checkboxLabel}>
               Allow discount
@@ -191,7 +225,7 @@ export default function TestAIPage() {
 
           {config.rules.allowDiscount && (
             <div style={styles.field}>
-              <label style={styles.label}>Max discount (€)</label>
+              <label style={styles.label}>Please specify max discount (€)</label>
               <input
                 type="number"
                 style={styles.input}
@@ -221,10 +255,22 @@ export default function TestAIPage() {
           </div>
 
           <div style={styles.actions}>
-            <button style={styles.secondaryButton} type="button" onClick={saveConfig}>
-              Save Config
+            <button
+              style={styles.secondaryButton}
+              className="btn-secondary"
+              type="button"
+              onClick={saveConfig}
+              disabled={saveState === "saving"}
+            >
+              {saveLabel}
             </button>
-            <button style={styles.primaryButton} type="button" onClick={generatePreview}>
+            <button
+              style={styles.primaryButton}
+              className="btn-primary"
+              type="button"
+              onClick={generatePreview}
+              disabled={loading}
+            >
               Generate Preview
             </button>
           </div>
@@ -235,7 +281,9 @@ export default function TestAIPage() {
           <h2 style={styles.previewTitle}>AI Preview</h2>
 
           {loading && (
-            <p style={{ color: "var(--muted)", fontSize: "14px" }}>Generating...</p>
+            <p style={{ color: "var(--muted)", fontSize: "14px" }}>
+              Generating...
+            </p>
           )}
 
           {preview && (
@@ -247,7 +295,11 @@ export default function TestAIPage() {
                     fontWeight: 700,
                     fontSize: "12px",
                     letterSpacing: "0.05em",
-                    color: preview?.routing === "AUTO" ? "#B4F000" : "#ef4444",
+                    color:
+                      preview?.routing === "AUTO" ||
+                      preview?.routing === "AUTO_REPLY"
+                        ? "#B4F000"
+                        : "#ef4444",
                   }}
                 >
                   {preview?.routing ?? "—"}
@@ -259,48 +311,45 @@ export default function TestAIPage() {
                 <span
                   style={{
                     fontWeight: 700,
-                    color: confidenceColor(preview?.confidence?.final ?? 0),
+                    color: confidenceColor(
+                      typeof preview?.confidence === "number"
+                        ? preview.confidence
+                        : 0
+                    ),
                   }}
                 >
-                  {preview?.confidence?.final != null
-                    ? (preview.confidence.final * 100).toFixed(0) + "%"
+                  {typeof preview?.confidence === "number"
+                    ? (preview.confidence * 100).toFixed(0) + "%"
                     : "—"}
-                  <span style={{ color: "var(--muted)", fontWeight: 400, fontSize: "12px", marginLeft: "8px" }}>
-                    (llm {preview?.confidence?.llm != null ? (preview.confidence.llm * 100).toFixed(0) + "%" : "—"} · retrieval {preview?.confidence?.retrieval != null ? (preview.confidence.retrieval * 100).toFixed(0) + "%" : "—"})
-                  </span>
-                </span>
-              </div>
-
-              <div style={{ ...styles.previewRow, ...styles.previewDivider }}>
-                <span style={styles.previewKey}>Retrieval</span>
-                <span style={{ color: "var(--muted)", fontSize: "13px" }}>
-                  {preview?.retrieval?.mode ?? "—"} · similarity {preview?.retrieval?.topSimilarity != null ? preview.retrieval.topSimilarity.toFixed(3) : "—"} · knowledge {preview?.retrieval?.usedKnowledge ? "used" : "not used"}
                 </span>
               </div>
 
               <div style={{ ...styles.previewDivider, paddingTop: "16px" }}>
                 <div style={styles.previewKey}>Subject</div>
-                <div style={styles.previewText}>{preview?.draft?.subject ?? "—"}</div>
+                <div style={styles.previewText}>
+                  {preview?.draft?.subject ?? "—"}
+                </div>
               </div>
 
               <div style={{ ...styles.previewDivider, paddingTop: "16px" }}>
                 <div style={styles.previewKey}>Body</div>
-                <div style={{ ...styles.previewText, whiteSpace: "pre-wrap", marginTop: "8px" }}>
+                <div
+                  style={{
+                    ...styles.previewText,
+                    whiteSpace: "pre-wrap",
+                    marginTop: "8px",
+                  }}
+                >
                   {preview?.draft?.body ?? "—"}
                 </div>
-              </div>
-
-              <div style={{ ...styles.previewDivider, paddingTop: "12px" }}>
-                <span style={{ ...styles.previewKey, fontSize: "11px" }}>
-                  {preview?.meta?.model ?? "—"} · {preview?.meta?.latencyMs != null ? `${preview.meta.latencyMs}ms` : "—"}
-                </span>
               </div>
             </div>
           )}
 
           {!loading && !preview && (
             <p style={{ color: "var(--muted)", fontSize: "13px" }}>
-              Hit "Generate Preview" to see a live AI response using the current config.
+              Hit &quot;Generate Preview&quot; to see a live AI response using
+              the current config.
             </p>
           )}
         </div>
@@ -311,25 +360,27 @@ export default function TestAIPage() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    padding: "56px 48px",
-    maxWidth: "1200px",
+    padding: "52px 44px",
+    maxWidth: "1100px",
     margin: "0 auto",
     minHeight: "100vh",
     background: "var(--bg)",
     color: "var(--text)",
   },
   header: {
-    marginBottom: "40px",
+    marginBottom: "44px",
   },
   title: {
-    fontSize: "30px",
-    fontWeight: 700,
-    marginBottom: "8px",
+    fontSize: "26px",
+    fontWeight: 600,
+    marginBottom: "6px",
     color: "var(--text)",
+    letterSpacing: "-0.02em",
   },
   subtitle: {
     color: "var(--muted)",
     fontSize: "14px",
+    lineHeight: 1.5,
   },
   layout: {
     display: "grid",
@@ -340,7 +391,7 @@ const styles: Record<string, React.CSSProperties> = {
   configPanel: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
-    borderRadius: "16px",
+    borderRadius: "14px",
     padding: "28px",
     display: "flex",
     flexDirection: "column",
@@ -404,7 +455,7 @@ const styles: Record<string, React.CSSProperties> = {
   previewPanel: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
-    borderRadius: "16px",
+    borderRadius: "14px",
     padding: "28px",
   },
   previewTitle: {
@@ -439,5 +490,39 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "14px",
     color: "var(--text)",
     lineHeight: 1.6,
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0, 0, 0, 0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  modal: {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "16px",
+    padding: "28px",
+    maxWidth: "400px",
+    width: "90%",
+  },
+  modalTitle: {
+    fontSize: "18px",
+    fontWeight: 700,
+    marginBottom: "12px",
+    color: "var(--text)",
+  },
+  modalText: {
+    fontSize: "14px",
+    color: "var(--muted)",
+    marginBottom: "24px",
+    lineHeight: 1.5,
+  },
+  modalActions: {
+    display: "flex",
+    gap: "12px",
+    justifyContent: "flex-end",
   },
 };

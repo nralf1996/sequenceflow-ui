@@ -1,33 +1,20 @@
 import type { AgentConfig } from "@/lib/support/configLoader";
 import type { SupportGenerateRequest } from "@/types/support";
 
-function toneGuidance(tone: AgentConfig["tone"]) {
-  if (tone === "formal") {
-    return "Schrijf formeel, professioneel en beknopt.";
-  }
-  if (tone === "direct") {
-    return "Schrijf direct, helder en to the point.";
-  }
-  return "Schrijf vriendelijk, behulpzaam en professioneel.";
-}
-
 export function buildSupportSystemPrompt(config: AgentConfig) {
   const empathyRule = config.empathyEnabled
     ? "Toon gepaste empathie waar nodig, maar blijf feitelijk."
     : "Gebruik geen empathische zinnen. Houd het functioneel.";
 
   const discountRule = config.allowDiscount
-    ? `Kortingen zijn toegestaan tot maximaal ${config.maxDiscountAmount}. Ga nooit boven dit bedrag.`
+    ? `Kortingen zijn toegestaan tot maximaal €${config.maxDiscountAmount}. Ga nooit boven dit bedrag.`
     : "Kortingen zijn NIET toegestaan. Bied geen korting aan.";
 
   return `
-Je bent een AI customer support agent voor ${config.companyName}.
+Je bent een AI customer support agent.
 
 ROL:
 Je behandelt support tickets professioneel en volgens bedrijfsbeleid.
-
-TOON:
-${toneGuidance(config.tone)}
 
 GEDRAGSREGELS:
 - ${empathyRule}

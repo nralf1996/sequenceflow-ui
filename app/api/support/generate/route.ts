@@ -108,7 +108,8 @@ export async function POST(req: Request) {
     );
     const customerName: string = data.customer?.name || from || "";
     const config = await loadAgentConfig();
-    
+    console.log("CONFIG USED IN GENERATE:", JSON.stringify(config));
+
     if (!subject && !ticketBody) {
       return NextResponse.json(
         { error: "Missing subject/body" },

@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-import path from "path";
+import { getSupabaseClient } from "@/lib/supabase";
 
 export type AgentConfig = {
   empathyEnabled: boolean;
@@ -8,33 +7,22 @@ export type AgentConfig = {
   signature: string;
 };
 
-const CONFIG_PATH = path.join(process.cwd(), "data", "agent-config.json");
-
 export async function loadAgentConfig(): Promise<AgentConfig> {
-  try {
-    const raw = await fs.readFile(CONFIG_PATH, "utf-8");
-    const parsed = JSON.parse(raw) as Record<string, any>;
+  const supabase = getSupabaseClient();
 
-    // Support both flat format (new) and nested rules format (legacy)
-    const empathyEnabled =
-      parsed.empathyEnabled ?? parsed.rules?.empathyEnabled ?? false;
-    const allowDiscount =
-      parsed.allowDiscount ?? parsed.rules?.allowDiscount ?? false;
-    const rawMax =
-      parsed.maxDiscountAmount ?? parsed.rules?.maxDiscountAmount ?? 0;
+  const { data, error } = await supabase
+    .from("agent_config")
+    .select("config")
+    .eq("id", "default")
+    .single();
 
-    return {
-      empathyEnabled: !!empathyEnabled,
-      allowDiscount: !!allowDiscount,
-      maxDiscountAmount: Number.isFinite(Number(rawMax)) ? Number(rawMax) : 0,
-      signature: parsed.signature ?? "Met vriendelijke groet,",
-    };
-  } catch {
-    return {
-      empathyEnabled: false,
-      allowDiscount: false,
-      maxDiscountAmount: 0,
-      signature: "Met vriendelijke groet,",
-    };
+  if (error) {
+    throw new Error("Failed to load agent config: " + error.message);
   }
+
+  return data?.config ?? {
+    empathyEnabled: true,
+    allowDiscount: false,
+    signature: "Team SequenceFlow",
+  };
 }

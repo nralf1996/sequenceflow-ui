@@ -5,7 +5,7 @@ import crypto from "crypto";
 import OpenAI from "openai";
 
 import { createEmbedding } from "@/lib/embeddings";
-import { cosineSimilarity } from "@/lib/similarity";
+import { getSupabaseClient } from "@/lib/supabase";
 import { loadAgentConfig } from "@/lib/support/configLoader";
 import {
   buildSupportSystemPrompt,
@@ -18,12 +18,6 @@ import { maskEmail } from "@/types/support";
 export const runtime = "nodejs";
 
 const LOG_PATH = path.join(process.cwd(), "data", "support-logs.jsonl");
-const VECTOR_PATH = path.join(
-  process.cwd(),
-  "public",
-  "uploads",
-  "vector-store.json"
-);
 
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
@@ -33,15 +27,6 @@ async function appendLog(line: object) {
   await fs.appendFile(LOG_PATH, JSON.stringify(line) + "\n", "utf-8").catch(
     () => {}
   );
-}
-
-async function readVectorStore() {
-  try {
-    const raw = await fs.readFile(VECTOR_PATH, "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
 }
 
 function extractEmail(value: any): string {
@@ -167,7 +152,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // ── STEP B: Knowledge retrieval ──────────────────────────────────────────
+    // ── STEP B: Knowledge retrieval (Supabase pgvector) ──────────────────────
     type ScoredItem = {
       chunk: string;
       score: number;
@@ -178,31 +163,45 @@ export async function POST(req: Request) {
     let topItems: ScoredItem[] = [];
     let highestScore = 0;
 
-    const vectorStore = await readVectorStore();
-
-    if (vectorStore.length > 0) {
+    try {
+      const supabase = getSupabaseClient();
       const queryEmbedding = await createEmbedding(`${subject} ${ticketBody}`);
 
-      const scored: ScoredItem[] = vectorStore.map((item: any) => ({
-        chunk: item.chunk,
-        score: cosineSimilarity(queryEmbedding, item.embedding),
-        documentId: item.documentId as string,
-        chunkId: item.chunkId as string,
-      }));
-
-      scored.sort((a, b) => b.score - a.score);
-      highestScore = scored[0]?.score ?? 0;
-
-      const highMatches = scored.filter((s) => s.score >= HIGH_THRESHOLD);
-      const mediumMatches = scored.filter(
-        (s) => s.score >= MEDIUM_THRESHOLD && s.score < HIGH_THRESHOLD
+      const { data: chunks, error: rpcError } = await supabase.rpc(
+        "match_knowledge_chunks",
+        {
+          query_embedding: queryEmbedding,
+          filter_client_id: null,      // null = platform-wide chunks
+          match_threshold: MEDIUM_THRESHOLD,
+          match_count: 10,
+        }
       );
 
-      if (highMatches.length > 0) {
-        topItems = highMatches.slice(0, 5);
-      } else if (mediumMatches.length > 0) {
-        topItems = mediumMatches.slice(0, 5);
+      if (!rpcError && Array.isArray(chunks) && chunks.length > 0) {
+        highestScore = chunks[0]?.similarity ?? 0;
+
+        const highMatches = chunks.filter((c: any) => c.similarity >= HIGH_THRESHOLD);
+        const mediumMatches = chunks.filter(
+          (c: any) => c.similarity >= MEDIUM_THRESHOLD && c.similarity < HIGH_THRESHOLD
+        );
+
+        const selected = highMatches.length > 0
+          ? highMatches.slice(0, 5)
+          : mediumMatches.slice(0, 5);
+
+        topItems = selected.map((c: any) => ({
+          chunk: c.content as string,
+          score: c.similarity as number,
+          documentId: c.document_id as string,
+          chunkId: c.id as string,
+        }));
       }
+
+      if (rpcError) {
+        console.warn("[generate] knowledge retrieval failed:", rpcError.message);
+      }
+    } catch (kErr: any) {
+      console.warn("[generate] knowledge retrieval error:", kErr?.message);
     }
 
     const usedKnowledge = topItems.length > 0;

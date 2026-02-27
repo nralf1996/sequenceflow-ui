@@ -35,9 +35,16 @@ export async function GET() {
     .eq("id", "default")
     .single();
 
-  if (error && error.code !== "PGRST116") {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !data) {
+    return NextResponse.json({
+      id: "default",
+      config: {
+        empathyEnabled: true,
+        allowDiscount: false,
+        signature: "Team SequenceFlow"
+      }
+    });
   }
 
-  return NextResponse.json(data?.config ?? {});
+  return NextResponse.json(data);
 }

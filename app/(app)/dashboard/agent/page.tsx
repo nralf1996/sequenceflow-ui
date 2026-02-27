@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 
 type Config = {
-  companyName: string;
-  tone: "friendly" | "formal" | "direct";
-  rules: {
-    empathyEnabled: boolean;
-    allowDiscount: boolean;
-    maxDiscountAmount: number | null;
-  };
+  empathyEnabled: boolean;
+  allowDiscount: boolean;
+  maxDiscountAmount: number | null;
   signature: string;
+};
+
+const DEFAULT_CONFIG: Config = {
+  empathyEnabled: true,
+  allowDiscount: false,
+  maxDiscountAmount: null,
+  signature: "Team SequenceFlow",
 };
 
 type SupportResponse = {
@@ -25,26 +28,15 @@ type SupportResponse = {
 };
 
 export default function AgentPage() {
-  const [config, setConfig] = useState<Config>({
-    companyName: "",
-    tone: "friendly",
-    rules: {
-      empathyEnabled: true,
-      allowDiscount: false,
-      maxDiscountAmount: null,
-    },
-    signature: "",
-  });
-
+  const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [preview, setPreview] = useState<SupportResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load config
   useEffect(() => {
     async function load() {
       const res = await fetch("/api/agent-config");
       const data = await res.json();
-      setConfig(data);
+      setConfig(data?.config ?? DEFAULT_CONFIG);
     }
     load();
   }, []);
@@ -80,11 +72,9 @@ export default function AgentPage() {
           currency: "EUR",
         },
         config: {
-          companyName: config.companyName,
-          tone: config.tone,
-          empathyEnabled: config.rules.empathyEnabled,
-          allowDiscount: config.rules.allowDiscount,
-          maxDiscountAmount: config.rules.maxDiscountAmount ?? 0,
+          empathyEnabled: config.empathyEnabled,
+          allowDiscount: config.allowDiscount,
+          maxDiscountAmount: config.maxDiscountAmount ?? 0,
           signature: config.signature,
         },
       }),
@@ -108,47 +98,12 @@ export default function AgentPage() {
       <div className="grid grid-cols-2 gap-10">
         <div className="space-y-6">
           <div>
-            <label className="block mb-2 text-sm font-semibold text-[var(--text)]">Company Name</label>
-            <input
-              className="w-full p-2 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
-              value={config.companyName}
-              onChange={(e) =>
-                setConfig({ ...config, companyName: e.target.value })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2 text-sm font-semibold text-[var(--text)]">Tone</label>
-            <select
-              className="w-full p-2 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
-              value={config.tone}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  tone: e.target.value as Config["tone"],
-                })
-              }
-            >
-              <option value="friendly">Friendly</option>
-              <option value="formal">Formal</option>
-              <option value="direct">Direct</option>
-            </select>
-          </div>
-
-          <div>
             <label className="flex items-center gap-2 text-sm text-[var(--text)]">
               <input
                 type="checkbox"
-                checked={config.rules.empathyEnabled}
+                checked={config.empathyEnabled}
                 onChange={(e) =>
-                  setConfig({
-                    ...config,
-                    rules: {
-                      ...config.rules,
-                      empathyEnabled: e.target.checked,
-                    },
-                  })
+                  setConfig({ ...config, empathyEnabled: e.target.checked })
                 }
               />
               Enable empathy
@@ -159,17 +114,14 @@ export default function AgentPage() {
             <label className="flex items-center gap-2 text-sm text-[var(--text)]">
               <input
                 type="checkbox"
-                checked={config.rules.allowDiscount}
+                checked={config.allowDiscount}
                 onChange={(e) =>
                   setConfig({
                     ...config,
-                    rules: {
-                      ...config.rules,
-                      allowDiscount: e.target.checked,
-                      maxDiscountAmount: e.target.checked
-                        ? config.rules.maxDiscountAmount ?? 10
-                        : null,
-                    },
+                    allowDiscount: e.target.checked,
+                    maxDiscountAmount: e.target.checked
+                      ? config.maxDiscountAmount ?? 10
+                      : null,
                   })
                 }
               />
@@ -177,20 +129,17 @@ export default function AgentPage() {
             </label>
           </div>
 
-          {config.rules.allowDiscount && (
+          {config.allowDiscount && (
             <div>
               <label className="block mb-2 text-sm font-semibold text-[var(--text)]">Max discount (€)</label>
               <input
                 type="number"
                 className="w-full p-2 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
-                value={config.rules.maxDiscountAmount ?? 0}
+                value={config.maxDiscountAmount ?? 0}
                 onChange={(e) =>
                   setConfig({
                     ...config,
-                    rules: {
-                      ...config.rules,
-                      maxDiscountAmount: Number(e.target.value),
-                    },
+                    maxDiscountAmount: Number(e.target.value),
                   })
                 }
               />

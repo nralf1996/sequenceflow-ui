@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Knowledge", href: "/knowledge" },
-  { label: "Agent Console", href: "/test-ai" },
+  { label: "Agent Console", href: "/agent-console" },
 ];
 
 export function Sidebar() {

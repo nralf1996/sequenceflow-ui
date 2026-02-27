@@ -3,12 +3,17 @@
 import { useEffect, useState } from "react";
 
 type Config = {
-  rules: {
-    empathyEnabled: boolean;
-    allowDiscount: boolean;
-    maxDiscountAmount: number | null;
-  };
+  empathyEnabled: boolean;
+  allowDiscount: boolean;
+  maxDiscountAmount: number | null;
   signature: string;
+};
+
+const DEFAULT_CONFIG: Config = {
+  empathyEnabled: true,
+  allowDiscount: false,
+  maxDiscountAmount: null,
+  signature: "Team SequenceFlow",
 };
 
 type PreviewResponse = {
@@ -20,16 +25,8 @@ type PreviewResponse = {
   confidence?: number;
 };
 
-export default function TestAIPage() {
-  const [config, setConfig] = useState<Config>({
-    rules: {
-      empathyEnabled: true,
-      allowDiscount: false,
-      maxDiscountAmount: null,
-    },
-    signature: "",
-  });
-
+export default function AgentConsolePage() {
+  const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState<
@@ -41,7 +38,7 @@ export default function TestAIPage() {
     fetch("/api/agent-config")
       .then((r) => r.json())
       .then((data) => {
-        if (!data.error) setConfig(data);
+        setConfig(data?.config ?? DEFAULT_CONFIG);
       });
   }, []);
 
@@ -71,10 +68,8 @@ export default function TestAIPage() {
       const configRes = await fetch("/api/agent-config");
       if (configRes.ok) {
         const data = await configRes.json();
-        if (!data.error) {
-          latestConfig = data;
-          setConfig(data);
-        }
+        latestConfig = data?.config ?? DEFAULT_CONFIG;
+        setConfig(latestConfig);
       }
     } catch {
       // fall back to local state
@@ -99,9 +94,9 @@ export default function TestAIPage() {
           currency: "EUR",
         },
         config: {
-          empathyEnabled: latestConfig.rules.empathyEnabled,
-          allowDiscount: latestConfig.rules.allowDiscount,
-          maxDiscountAmount: latestConfig.rules.maxDiscountAmount ?? 0,
+          empathyEnabled: latestConfig.empathyEnabled,
+          allowDiscount: latestConfig.allowDiscount,
+          maxDiscountAmount: latestConfig.maxDiscountAmount ?? 0,
           signature: latestConfig.signature,
         },
       }),
@@ -152,11 +147,8 @@ export default function TestAIPage() {
                 onClick={() => {
                   setConfig({
                     ...config,
-                    rules: {
-                      ...config.rules,
-                      allowDiscount: true,
-                      maxDiscountAmount: config.rules.maxDiscountAmount ?? 10,
-                    },
+                    allowDiscount: true,
+                    maxDiscountAmount: config.maxDiscountAmount ?? 10,
                   });
                   setDiscountModal(false);
                 }}
@@ -169,7 +161,7 @@ export default function TestAIPage() {
       )}
 
       <div style={styles.header}>
-        <h1 style={styles.title}>Test AI</h1>
+        <h1 style={styles.title}>Agent Console</h1>
         <p style={styles.subtitle}>
           Configure the support agent and generate a live AI preview.
         </p>
@@ -182,15 +174,9 @@ export default function TestAIPage() {
             <input
               type="checkbox"
               id="empathy"
-              checked={config.rules.empathyEnabled}
+              checked={config.empathyEnabled}
               onChange={(e) =>
-                setConfig({
-                  ...config,
-                  rules: {
-                    ...config.rules,
-                    empathyEnabled: e.target.checked,
-                  },
-                })
+                setConfig({ ...config, empathyEnabled: e.target.checked })
               }
             />
             <label htmlFor="empathy" style={styles.checkboxLabel}>
@@ -202,18 +188,15 @@ export default function TestAIPage() {
             <input
               type="checkbox"
               id="discount"
-              checked={config.rules.allowDiscount}
+              checked={config.allowDiscount}
               onChange={(e) => {
                 if (e.target.checked) {
                   setDiscountModal(true);
                 } else {
                   setConfig({
                     ...config,
-                    rules: {
-                      ...config.rules,
-                      allowDiscount: false,
-                      maxDiscountAmount: null,
-                    },
+                    allowDiscount: false,
+                    maxDiscountAmount: null,
                   });
                 }
               }}
@@ -223,20 +206,17 @@ export default function TestAIPage() {
             </label>
           </div>
 
-          {config.rules.allowDiscount && (
+          {config.allowDiscount && (
             <div style={styles.field}>
               <label style={styles.label}>Please specify max discount (€)</label>
               <input
                 type="number"
                 style={styles.input}
-                value={config.rules.maxDiscountAmount ?? 0}
+                value={config.maxDiscountAmount ?? 0}
                 onChange={(e) =>
                   setConfig({
                     ...config,
-                    rules: {
-                      ...config.rules,
-                      maxDiscountAmount: Number(e.target.value),
-                    },
+                    maxDiscountAmount: Number(e.target.value),
                   })
                 }
               />

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export function Sidebar() {
@@ -53,16 +52,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Footer: language switcher */}
-      <div
-        className="px-4 py-3 flex items-center"
-        style={{ borderTop: "1px solid var(--border)" }}
-      >
-        <LanguageSwitcher />
-      </div>
     </aside>
   );
 }

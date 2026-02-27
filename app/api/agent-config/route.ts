@@ -1,48 +1,43 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
+import { supabase } from "@/lib/supabase";
 
-const CONFIG_PATH = path.join(process.cwd(), "data", "agent-config.json");
-
-export async function GET() {
+export async function POST(req: Request) {
   try {
-    const raw = await fs.readFile(CONFIG_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Record<string, any>;
+    const body = await req.json();
 
-    // Return nested format expected by the Test AI UI
-    return NextResponse.json({
-      rules: {
-        empathyEnabled:
-          parsed.empathyEnabled ?? parsed.rules?.empathyEnabled ?? false,
-        allowDiscount:
-          parsed.allowDiscount ?? parsed.rules?.allowDiscount ?? false,
-        maxDiscountAmount:
-          parsed.maxDiscountAmount ?? parsed.rules?.maxDiscountAmount ?? null,
-      },
-      signature: parsed.signature ?? "",
-    });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to read config file" },
-      { status: 500 }
-    );
+    const { error } = await supabase
+      .from("agent_config")
+      .upsert(
+        {
+          id: "default",
+          config: body,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+
+    if (error) {
+      console.error(error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error(err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
-  const body = await req.json();
+export async function GET() {
+  const { data, error } = await supabase
+    .from("agent_config")
+    .select("*")
+    .eq("id", "default")
+    .single();
 
-  // Normalize to flat format so loadAgentConfig() always reads correctly
-  const flat = {
-    empathyEnabled: body.rules?.empathyEnabled ?? body.empathyEnabled ?? false,
-    allowDiscount: body.rules?.allowDiscount ?? body.allowDiscount ?? false,
-    maxDiscountAmount:
-      body.rules?.maxDiscountAmount ?? body.maxDiscountAmount ?? 0,
-    signature: body.signature ?? "",
-  };
+  if (error && error.code !== "PGRST116") {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-  await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-  await fs.writeFile(CONFIG_PATH, JSON.stringify(flat, null, 2));
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json(data?.config ?? {});
 }

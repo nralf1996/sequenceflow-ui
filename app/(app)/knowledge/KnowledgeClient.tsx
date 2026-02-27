@@ -59,6 +59,7 @@ function UploadCard({
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault();
@@ -89,39 +90,126 @@ function UploadCard({
     onUploaded();
   }
 
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    // Only clear if leaving the container itself, not a child
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragging(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const dropped = e.dataTransfer.files?.[0];
+    if (dropped) setFile(dropped);
+  }
+
+  function openFilePicker(e: React.MouseEvent) {
+    e.stopPropagation();
+    fileRef.current?.click();
+  }
+
   return (
     <form onSubmit={handleUpload} style={styles.uploadCard}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
-        <input
-          type="text"
-          placeholder={t.common.titleOptional}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={styles.textInput}
-        />
+      {/* Hidden native input — triggered programmatically */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.txt,.md,.csv"
+        style={{ display: "none" }}
+        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+      />
 
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.txt,.md,.csv"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            style={{ color: "var(--text)", flex: 1, fontSize: "13px" }}
-          />
+      {/* Title */}
+      <input
+        type="text"
+        placeholder={t.common.titleOptional}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={styles.textInput}
+      />
 
-          <button
-            type="submit"
-            disabled={!file || uploading}
-            style={{
-              ...styles.primaryButton,
-              opacity: !file || uploading ? 0.5 : 1,
-              cursor: !file || uploading ? "not-allowed" : "pointer",
-            }}
-          >
-            {uploading ? t.common.uploading : t.common.upload}
-          </button>
-        </div>
+      {/* Drag-and-drop zone */}
+      <div
+        onClick={() => fileRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+          padding: "11px 14px",
+          borderRadius: "10px",
+          border: dragging
+            ? "1px solid rgba(180,240,0,0.6)"
+            : "1px solid var(--border)",
+          background: dragging
+            ? "rgba(180,240,0,0.04)"
+            : "var(--bg)",
+          cursor: "pointer",
+          transition: "border-color 0.15s ease, background 0.15s ease",
+          userSelect: "none",
+        }}
+      >
+        {/* Left: filename or placeholder */}
+        <span
+          style={{
+            fontSize: "13px",
+            color: file ? "var(--text)" : "var(--muted)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          {file ? file.name : t.knowledge.dropzonePlaceholder}
+        </span>
+
+        {/* Right: Select / Change file button */}
+        <button
+          type="button"
+          onClick={openFilePicker}
+          style={{
+            background: "#1a1a1a",
+            color: "#ffffff",
+            border: "none",
+            padding: "6px 14px",
+            borderRadius: "6px",
+            fontSize: "12px",
+            fontWeight: 600,
+            cursor: "pointer",
+            flexShrink: 0,
+            transition: "opacity 0.15s ease",
+            letterSpacing: "0.01em",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+        >
+          {file ? t.knowledge.changeFile : t.knowledge.selectFile}
+        </button>
       </div>
+
+      {/* Upload submit button */}
+      <button
+        type="submit"
+        disabled={!file || uploading}
+        style={{
+          ...styles.primaryButton,
+          opacity: !file || uploading ? 0.45 : 1,
+          cursor: !file || uploading ? "not-allowed" : "pointer",
+          alignSelf: "flex-end",
+        }}
+      >
+        {uploading ? t.common.uploading : t.common.upload}
+      </button>
 
       {error && <div style={styles.errorBanner}>{error}</div>}
     </form>

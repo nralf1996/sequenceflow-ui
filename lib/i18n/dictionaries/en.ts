@@ -61,6 +61,9 @@ export const en = {
       pending: "PENDING",
       error: "ERROR",
     },
+    dropzonePlaceholder: "Select or drag a file here",
+    selectFile: "Select file",
+    changeFile: "Change file",
   },
 
   agentConsole: {

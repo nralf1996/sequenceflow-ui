@@ -63,6 +63,9 @@ export const nl: Dictionary = {
       pending: "WACHTEND",
       error: "FOUT",
     },
+    dropzonePlaceholder: "Selecteer of sleep een bestand",
+    selectFile: "Bestand selecteren",
+    changeFile: "Bestand wijzigen",
   },
 
   agentConsole: {

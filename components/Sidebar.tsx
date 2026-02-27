@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-const navItems = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Knowledge", href: "/knowledge" },
-  { label: "Agent Console", href: "/agent-console" },
-];
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { label: t.sidebar.dashboard,    href: "/dashboard" },
+    { label: t.sidebar.knowledge,    href: "/knowledge" },
+    { label: t.sidebar.agentConsole, href: "/agent-console" },
+  ];
 
   return (
     <aside className="w-52 flex-shrink-0 border-r border-[var(--border)] bg-[var(--bg)] flex flex-col h-full transition-colors duration-300 ease-in-out">
+      {/* Header: brand + theme toggle */}
       <div
         className="px-5 py-5 flex items-center justify-between"
         style={{ borderBottom: "1px solid var(--border)" }}
@@ -28,6 +32,7 @@ export function Sidebar() {
         <ThemeToggle />
       </div>
 
+      {/* Nav items */}
       <nav className="flex flex-col gap-0.5 px-3 pt-3">
         {navItems.map(({ label, href }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
@@ -47,6 +52,17 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Footer: language switcher */}
+      <div
+        className="px-4 py-3 flex items-center"
+        style={{ borderTop: "1px solid var(--border)" }}
+      >
+        <LanguageSwitcher />
+      </div>
     </aside>
   );
 }

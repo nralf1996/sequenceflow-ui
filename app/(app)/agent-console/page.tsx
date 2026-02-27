@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 type Config = {
   empathyEnabled: boolean;
@@ -26,6 +27,7 @@ type PreviewResponse = {
 };
 
 export default function AgentConsolePage() {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,12 +117,12 @@ export default function AgentConsolePage() {
 
   const saveLabel =
     saveState === "saving"
-      ? "Saving..."
+      ? t.common.saving
       : saveState === "saved"
-        ? "Saved ✓"
+        ? t.common.saved
         : saveState === "error"
-          ? "Save failed"
-          : "Save Config";
+          ? t.common.saveFailed
+          : t.common.save;
 
   return (
     <div style={styles.page}>
@@ -128,18 +130,15 @@ export default function AgentConsolePage() {
       {discountModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
-            <h3 style={styles.modalTitle}>Allow Discounts?</h3>
-            <p style={styles.modalText}>
-              Are you sure you want to allow the AI to offer discounts to
-              customers?
-            </p>
+            <h3 style={styles.modalTitle}>{t.agentConsole.modalTitle}</h3>
+            <p style={styles.modalText}>{t.agentConsole.modalText}</p>
             <div style={styles.modalActions}>
               <button
                 style={styles.secondaryButton}
                 className="btn-secondary"
                 onClick={() => setDiscountModal(false)}
               >
-                Cancel
+                {t.common.cancel}
               </button>
               <button
                 style={styles.primaryButton}
@@ -153,7 +152,7 @@ export default function AgentConsolePage() {
                   setDiscountModal(false);
                 }}
               >
-                Yes, allow
+                {t.common.yesAllow}
               </button>
             </div>
           </div>
@@ -161,10 +160,8 @@ export default function AgentConsolePage() {
       )}
 
       <div style={styles.header}>
-        <h1 style={styles.title}>Agent Console</h1>
-        <p style={styles.subtitle}>
-          Configure the support agent and generate a live AI preview.
-        </p>
+        <h1 style={styles.title}>{t.agentConsole.title}</h1>
+        <p style={styles.subtitle}>{t.agentConsole.subtitle}</p>
       </div>
 
       <div style={styles.layout}>
@@ -180,7 +177,7 @@ export default function AgentConsolePage() {
               }
             />
             <label htmlFor="empathy" style={styles.checkboxLabel}>
-              Enable empathy
+              {t.agentConsole.enableEmpathy}
             </label>
           </div>
 
@@ -202,13 +199,13 @@ export default function AgentConsolePage() {
               }}
             />
             <label htmlFor="discount" style={styles.checkboxLabel}>
-              Allow discount
+              {t.agentConsole.allowDiscount}
             </label>
           </div>
 
           {config.allowDiscount && (
             <div style={styles.field}>
-              <label style={styles.label}>Please specify max discount (€)</label>
+              <label style={styles.label}>{t.agentConsole.maxDiscount}</label>
               <input
                 type="number"
                 style={styles.input}
@@ -224,7 +221,7 @@ export default function AgentConsolePage() {
           )}
 
           <div style={styles.field}>
-            <label style={styles.label}>Signature</label>
+            <label style={styles.label}>{t.agentConsole.signature}</label>
             <textarea
               style={{ ...styles.input, minHeight: "80px", resize: "vertical" }}
               value={config.signature}
@@ -251,25 +248,25 @@ export default function AgentConsolePage() {
               onClick={generatePreview}
               disabled={loading}
             >
-              Generate Preview
+              {t.agentConsole.generatePreview}
             </button>
           </div>
         </div>
 
         {/* Preview panel */}
         <div style={styles.previewPanel}>
-          <h2 style={styles.previewTitle}>AI Preview</h2>
+          <h2 style={styles.previewTitle}>{t.agentConsole.aiPreview}</h2>
 
           {loading && (
             <p style={{ color: "var(--muted)", fontSize: "14px" }}>
-              Generating...
+              {t.common.generating}
             </p>
           )}
 
           {preview && (
             <div style={styles.previewContent}>
               <div style={styles.previewRow}>
-                <span style={styles.previewKey}>Routing</span>
+                <span style={styles.previewKey}>{t.agentConsole.routing}</span>
                 <span
                   style={{
                     fontWeight: 700,
@@ -287,7 +284,7 @@ export default function AgentConsolePage() {
               </div>
 
               <div style={{ ...styles.previewRow, ...styles.previewDivider }}>
-                <span style={styles.previewKey}>Confidence</span>
+                <span style={styles.previewKey}>{t.agentConsole.confidence}</span>
                 <span
                   style={{
                     fontWeight: 700,
@@ -305,14 +302,14 @@ export default function AgentConsolePage() {
               </div>
 
               <div style={{ ...styles.previewDivider, paddingTop: "16px" }}>
-                <div style={styles.previewKey}>Subject</div>
+                <div style={styles.previewKey}>{t.agentConsole.subject}</div>
                 <div style={styles.previewText}>
                   {preview?.draft?.subject ?? "—"}
                 </div>
               </div>
 
               <div style={{ ...styles.previewDivider, paddingTop: "16px" }}>
-                <div style={styles.previewKey}>Body</div>
+                <div style={styles.previewKey}>{t.agentConsole.body}</div>
                 <div
                   style={{
                     ...styles.previewText,
@@ -328,8 +325,7 @@ export default function AgentConsolePage() {
 
           {!loading && !preview && (
             <p style={{ color: "var(--muted)", fontSize: "13px" }}>
-              Hit &quot;Generate Preview&quot; to see a live AI response using
-              the current config.
+              {t.agentConsole.emptyPreview}
             </p>
           )}
         </div>

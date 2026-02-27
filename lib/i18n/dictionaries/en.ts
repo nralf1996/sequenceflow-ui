@@ -1,0 +1,88 @@
+export const en = {
+  common: {
+    save: "Save Config",
+    saving: "Saving...",
+    saved: "Saved ✓",
+    saveFailed: "Save failed",
+    upload: "Upload",
+    uploading: "Uploading…",
+    cancel: "Cancel",
+    delete: "Delete",
+    reindex: "Reindex",
+    loading: "Loading…",
+    generating: "Generating...",
+    yesAllow: "Yes, allow",
+    noDocuments: "No documents yet. Upload one above.",
+    titleOptional: "Title (optional)",
+    admin: "admin",
+  },
+
+  sidebar: {
+    dashboard: "Dashboard",
+    knowledge: "Knowledge",
+    agentConsole: "Agent Console",
+  },
+
+  dashboard: {
+    title: "Dashboard",
+    subtitle: "Overview of your SupportFlow OS.",
+    documents: "Documents",
+    totalCharacters: "Total Characters",
+    aiConfidence: "AI Confidence",
+    avgResponseTime: "Avg Response Time",
+    systemStatus: "System Status",
+    knowledgeEngine: "Knowledge Engine",
+    pdfExtraction: "PDF Extraction",
+    vectorIndex: "Vector Index",
+    // Status value labels
+    active: "Active",
+    operational: "Operational",
+    unavailable: "Unavailable",
+    connected: "Connected",
+    notConnected: "Not Connected",
+  },
+
+  knowledge: {
+    title: "Knowledge Library",
+    subtitle:
+      "Manage documents used by the support agent. Policy and training docs are client-specific; platform docs are global.",
+    subtitleClient:
+      "Upload policy and training documents for your workspace.",
+    tabPolicy: "Policy",
+    tabPolicyDesc: "Return policies, warranty rules, shipping terms.",
+    tabTraining: "Training",
+    tabTrainingDesc: "Q&A pairs and scripts for agent training.",
+    tabPlatform: "Platform",
+    tabPlatformDesc:
+      "Platform-wide docs visible to all clients (admin only).",
+    status: {
+      ready: "READY",
+      processing: "PROCESSING",
+      pending: "PENDING",
+      error: "ERROR",
+    },
+  },
+
+  agentConsole: {
+    title: "Agent Console",
+    subtitle:
+      "Configure the support agent and generate a live AI preview.",
+    enableEmpathy: "Enable empathy",
+    allowDiscount: "Allow discount",
+    maxDiscount: "Please specify max discount (€)",
+    signature: "Signature",
+    generatePreview: "Generate Preview",
+    aiPreview: "AI Preview",
+    routing: "Routing",
+    confidence: "Confidence",
+    subject: "Subject",
+    body: "Body",
+    emptyPreview:
+      'Hit "Generate Preview" to see a live AI response using the current config.',
+    modalTitle: "Allow Discounts?",
+    modalText:
+      "Are you sure you want to allow the AI to offer discounts to customers?",
+  },
+};
+
+export type Dictionary = typeof en;

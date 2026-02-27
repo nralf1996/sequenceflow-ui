@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type KnowledgeType = "policy" | "training" | "platform";
@@ -19,25 +20,27 @@ type KnowledgeDoc = {
   updated_at: string;
 };
 
-// ─── Tab definitions ──────────────────────────────────────────────────────────
-const ALL_TABS: { key: KnowledgeType; label: string; description: string }[] = [
-  { key: "policy",   label: "Policy",   description: "Return policies, warranty rules, shipping terms." },
-  { key: "training", label: "Training", description: "Q&A pairs and scripts for agent training." },
-  { key: "platform", label: "Platform", description: "Platform-wide docs visible to all clients (admin only)." },
-];
-
 // ─── Status badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: KnowledgeDoc["status"] }) {
+  const { t } = useTranslation();
+
   const colors: Record<KnowledgeDoc["status"], React.CSSProperties> = {
-    ready:      { background: "rgba(180,240,0,0.12)",  color: "#B4F000",       border: "1px solid rgba(180,240,0,0.25)" },
-    processing: { background: "rgba(234,179,8,0.12)",  color: "#eab308",       border: "1px solid rgba(234,179,8,0.25)" },
-    pending:    { background: "rgba(148,163,184,0.1)", color: "var(--muted)",  border: "1px solid var(--border)" },
-    error:      { background: "rgba(239,68,68,0.1)",   color: "#ef4444",       border: "1px solid rgba(239,68,68,0.25)" },
+    ready:      { background: "rgba(180,240,0,0.12)",  color: "#B4F000",      border: "1px solid rgba(180,240,0,0.25)" },
+    processing: { background: "rgba(234,179,8,0.12)",  color: "#eab308",      border: "1px solid rgba(234,179,8,0.25)" },
+    pending:    { background: "rgba(148,163,184,0.1)", color: "var(--muted)", border: "1px solid var(--border)" },
+    error:      { background: "rgba(239,68,68,0.1)",   color: "#ef4444",      border: "1px solid rgba(239,68,68,0.25)" },
+  };
+
+  const labels: Record<KnowledgeDoc["status"], string> = {
+    ready:      t.knowledge.status.ready,
+    processing: t.knowledge.status.processing,
+    pending:    t.knowledge.status.pending,
+    error:      t.knowledge.status.error,
   };
 
   return (
     <span style={{ ...colors[status], fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "6px", letterSpacing: "0.03em" }}>
-      {status.toUpperCase()}
+      {labels[status]}
     </span>
   );
 }
@@ -50,6 +53,7 @@ function UploadCard({
   type: KnowledgeType;
   onUploaded: () => void;
 }) {
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -90,7 +94,7 @@ function UploadCard({
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
         <input
           type="text"
-          placeholder="Title (optional)"
+          placeholder={t.common.titleOptional}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           style={styles.textInput}
@@ -114,7 +118,7 @@ function UploadCard({
               cursor: !file || uploading ? "not-allowed" : "pointer",
             }}
           >
-            {uploading ? "Uploading…" : "Upload"}
+            {uploading ? t.common.uploading : t.common.upload}
           </button>
         </div>
       </div>
@@ -134,6 +138,7 @@ function DocRow({
   onDeleted: () => void;
   onReindexed: () => void;
 }) {
+  const { t } = useTranslation();
   const [reindexing, setReindexing] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -149,7 +154,7 @@ function DocRow({
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${doc.title}"?`)) return;
+    if (!confirm(`${t.common.delete} "${doc.title}"?`)) return;
     setDeleting(true);
     await fetch(`/api/knowledge/document/${doc.id}`, { method: "DELETE" });
     setDeleting(false);
@@ -185,7 +190,7 @@ function DocRow({
           disabled={reindexing || doc.status === "processing"}
           style={styles.actionButton}
         >
-          {reindexing ? "…" : "Reindex"}
+          {reindexing ? "…" : t.common.reindex}
         </button>
 
         <button
@@ -193,7 +198,7 @@ function DocRow({
           disabled={deleting}
           style={{ ...styles.actionButton, color: "#ef4444", borderColor: "rgba(239,68,68,0.3)" }}
         >
-          {deleting ? "…" : "Delete"}
+          {deleting ? "…" : t.common.delete}
         </button>
       </div>
     </div>
@@ -202,12 +207,12 @@ function DocRow({
 
 // ─── Tab panel ────────────────────────────────────────────────────────────────
 function TabPanel({ type }: { type: KnowledgeType }) {
+  const { t } = useTranslation();
   const [docs, setDocs] = useState<KnowledgeDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    // client_id is NOT passed — the server derives it from the session cookie
     const res = await fetch(`/api/knowledge/documents?type=${type}`, { cache: "no-store" });
     const json = await res.json();
     setDocs(json.documents ?? []);
@@ -223,9 +228,9 @@ function TabPanel({ type }: { type: KnowledgeType }) {
       <UploadCard type={type} onUploaded={refresh} />
 
       {loading ? (
-        <div style={styles.emptyState}>Loading…</div>
+        <div style={styles.emptyState}>{t.common.loading}</div>
       ) : docs.length === 0 ? (
-        <div style={styles.emptyState}>No documents yet. Upload one above.</div>
+        <div style={styles.emptyState}>{t.common.noDocuments}</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {docs.map((doc) => (
@@ -244,24 +249,28 @@ function TabPanel({ type }: { type: KnowledgeType }) {
 
 // ─── Main client component ────────────────────────────────────────────────────
 export function KnowledgeClient({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = useTranslation();
+
+  const ALL_TABS = [
+    { key: "policy"   as KnowledgeType, label: t.knowledge.tabPolicy,   description: t.knowledge.tabPolicyDesc },
+    { key: "training" as KnowledgeType, label: t.knowledge.tabTraining, description: t.knowledge.tabTrainingDesc },
+    { key: "platform" as KnowledgeType, label: t.knowledge.tabPlatform, description: t.knowledge.tabPlatformDesc },
+  ];
+
   // Platform tab is only available to admin — filter server-side decision into UI
-  const TABS = isAdmin ? ALL_TABS : ALL_TABS.filter((t) => t.key !== "platform");
+  const TABS = isAdmin ? ALL_TABS : ALL_TABS.filter((tab) => tab.key !== "platform");
 
   const [activeTab, setActiveTab] = useState<KnowledgeType>(TABS[0].key);
-  const activeTabDef = TABS.find((t) => t.key === activeTab) ?? TABS[0];
 
-  // If the active tab was platform and user is not admin (shouldn't happen, but guard it)
-  const safeTab = TABS.find((t) => t.key === activeTab) ? activeTab : TABS[0].key;
+  const safeTab = TABS.find((tab) => tab.key === activeTab) ? activeTab : TABS[0].key;
+  const activeTabDef = TABS.find((tab) => tab.key === safeTab) ?? TABS[0];
 
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Knowledge Library</h1>
+        <h1 style={styles.title}>{t.knowledge.title}</h1>
         <p style={styles.subtitle}>
-          Manage documents used by the support agent.
-          {isAdmin
-            ? " Policy and training docs are client-specific; platform docs are global."
-            : " Upload policy and training documents for your workspace."}
+          {isAdmin ? t.knowledge.subtitle : t.knowledge.subtitleClient}
         </p>
       </div>
 
@@ -278,7 +287,7 @@ export function KnowledgeClient({ isAdmin }: { isAdmin: boolean }) {
           >
             {tab.label}
             {tab.key === "platform" && (
-              <span style={styles.adminBadge}>admin</span>
+              <span style={styles.adminBadge}>{t.common.admin}</span>
             )}
           </button>
         ))}

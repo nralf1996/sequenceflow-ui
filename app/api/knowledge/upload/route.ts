@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 
+import { getSession } from "@/lib/auth";
 import { getSupabaseClient } from "@/lib/supabase";
 import { ingestDocument } from "@/lib/knowledge/ingest";
 
@@ -23,12 +24,17 @@ function resolveMimeType(file: File): string {
 }
 
 export async function POST(req: Request) {
+  // ── Auth guard ──────────────────────────────────────────────────────────────
+  const session = getSession(req);
+  if (!session) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const form = await req.formData();
     const file = form.get("file");
     const type = (form.get("type") as string) ?? "platform";
     const title = (form.get("title") as string) ?? "";
-    const clientId = (form.get("client_id") as string) || null;
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
@@ -37,12 +43,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const mimeType = resolveMimeType(file);
-
-    if (!ALLOWED_MIME.has(mimeType)) {
+    // ── Role enforcement ──────────────────────────────────────────────────────
+    if (type === "platform" && session.role !== "admin") {
       return NextResponse.json(
-        { ok: false, error: "Unsupported file type. Use PDF, TXT, MD, or CSV." },
-        { status: 400 }
+        { ok: false, error: "Only admins can upload platform documents." },
+        { status: 403 }
       );
     }
 
@@ -53,13 +58,24 @@ export async function POST(req: Request) {
       );
     }
 
+    const mimeType = resolveMimeType(file);
+    if (!ALLOWED_MIME.has(mimeType)) {
+      return NextResponse.json(
+        { ok: false, error: "Unsupported file type. Use PDF, TXT, MD, or CSV." },
+        { status: 400 }
+      );
+    }
+
+    // ── client_id comes from session — never from request body ────────────────
+    const clientId = session.clientId; // null for admin, uuid for client
+
     const supabase = getSupabaseClient();
     const documentId = crypto.randomUUID();
     const ext = file.name.split(".").pop() ?? "bin";
     const storedFilename = `original.${ext}`;
     const storagePath = `${clientId ?? "platform"}/${documentId}/${storedFilename}`;
 
-    // Create document row first (status = pending)
+    // Create document row (status = pending)
     const { error: insertError } = await supabase.from("knowledge_documents").insert({
       id: documentId,
       client_id: clientId,
@@ -77,15 +93,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Upload file to Supabase Storage
+    // Upload to Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
-
     const { error: uploadError } = await supabase.storage
       .from("knowledge-uploads")
       .upload(storagePath, buffer, { contentType: mimeType });
 
     if (uploadError) {
-      // Roll back document row
       await supabase.from("knowledge_documents").delete().eq("id", documentId);
       return NextResponse.json(
         { ok: false, error: "Storage upload failed: " + uploadError.message },

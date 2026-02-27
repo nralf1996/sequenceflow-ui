@@ -107,8 +107,8 @@ export async function POST(req: Request) {
       data.email
     );
     const customerName: string = data.customer?.name || from || "";
-    const config = data.config ?? (await loadAgentConfig());
-
+    const config = await loadAgentConfig();
+    
     if (!subject && !ticketBody) {
       return NextResponse.json(
         { error: "Missing subject/body" },

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const supabase = getSupabaseClient();
 
     const { error } = await supabase
       .from("agent_config")
@@ -29,22 +30,29 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("agent_config")
-    .select("*")
-    .eq("id", "default")
-    .single();
+  try {
+    const supabase = getSupabaseClient();
 
-  if (error || !data) {
-    return NextResponse.json({
-      id: "default",
-      config: {
-        empathyEnabled: true,
-        allowDiscount: false,
-        signature: "Team SequenceFlow"
-      }
-    });
+    const { data, error } = await supabase
+      .from("agent_config")
+      .select("*")
+      .eq("id", "default")
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({
+        id: "default",
+        config: {
+          empathyEnabled: true,
+          allowDiscount: false,
+          signature: "Team SequenceFlow",
+        },
+      });
+    }
+
+    return NextResponse.json(data);
+  } catch (err: any) {
+    console.error(err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  return NextResponse.json(data);
 }

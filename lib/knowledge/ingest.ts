@@ -1,37 +1,23 @@
-import { writeFile, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { spawn } from "node:child_process";
-import crypto from "node:crypto";
+import { PDFParse } from "pdf-parse";
 
 import { getSupabaseClient } from "@/lib/supabase";
 import { chunkText } from "@/lib/chunkText";
 import { createEmbedding } from "@/lib/embeddings";
 
-// ─── PDF extraction via pdftotext ─────────────────────────────────────────────
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  const tmpPath = path.join(tmpdir(), `${crypto.randomUUID()}.pdf`);
-  try {
-    await writeFile(tmpPath, buffer);
-    return await new Promise<string>((resolve, reject) => {
-      const child = spawn("pdftotext", ["-layout", tmpPath, "-"]);
-      let out = "";
-      child.stdout.on("data", (d: Buffer) => (out += d.toString()));
-      child.on("close", (code: number) => {
-        if (code === 0) resolve(out);
-        else reject(new Error(`pdftotext exited with code ${code}`));
-      });
-      child.on("error", reject);
-    });
-  } finally {
-    await unlink(tmpPath).catch(() => {});
-  }
-}
-
 // ─── Text extraction dispatcher ───────────────────────────────────────────────
 async function extractText(buffer: Buffer, mimeType: string): Promise<string> {
   if (mimeType === "application/pdf") {
-    return extractPdfText(buffer);
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const result = await parser.getText();
+      const text = result.text;
+      if (!text.trim()) {
+        throw new Error("PDF extraction failed: no readable text detected");
+      }
+      return text;
+    } finally {
+      await parser.destroy();
+    }
   }
   // TXT / MD / CSV — read as UTF-8
   return buffer.toString("utf8");

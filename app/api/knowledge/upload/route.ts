@@ -1,113 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "node:crypto";
 
 import { getSupabaseClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_MIME = new Set([
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-]);
-
-function resolveMimeType(file: File): string {
-  if (file.type && ALLOWED_MIME.has(file.type)) return file.type;
-  const ext = file.name.split(".").pop()?.toLowerCase();
-  if (ext === "pdf") return "application/pdf";
-  if (ext === "md") return "text/markdown";
-  if (ext === "csv") return "text/csv";
-  return "text/plain";
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const form = await req.formData();
-    const file = form.get("file");
-    const type = (form.get("type") as string) ?? "platform";
-    const title = (form.get("title") as string) ?? "";
+    // 1) Parse formData
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    const type = formData.get("type") as string | null;
+    const title = formData.get("title") as string | null;
 
-    // ── Validate ──────────────────────────────────────────────────────────────
-    if (!file || !(file instanceof File)) {
+    // 2) Validate
+    if (!file) {
       return NextResponse.json({ ok: false, error: "No file provided." }, { status: 400 });
     }
 
-    if (!["policy", "training", "platform"].includes(type)) {
+    if (!type || !["policy", "training", "platform"].includes(type)) {
       return NextResponse.json(
         { ok: false, error: "type must be policy | training | platform" },
         { status: 400 }
       );
     }
 
-    const mimeType = resolveMimeType(file);
-    if (!ALLOWED_MIME.has(mimeType)) {
+    const supabase = getSupabaseClient();
+
+    // 3) Insert document row
+    const { data: inserted, error: insertError } = await supabase
+      .from("knowledge_documents")
+      .insert({
+        client_id: null,
+        type,
+        title: title || null,
+        source: file.name,
+        mime_type: file.type,
+        status: "pending",
+        chunk_count: 0,
+      })
+      .select()
+      .single();
+
+    if (insertError || !inserted) {
+      console.error("[upload] DB insert failed:", insertError?.message);
       return NextResponse.json(
-        { ok: false, error: "Unsupported file type. Use PDF, TXT, MD, or CSV." },
-        { status: 400 }
+        { ok: false, error: insertError?.message ?? "Failed to create document record." },
+        { status: 500 }
       );
     }
 
-    // ── Build paths ───────────────────────────────────────────────────────────
-    // client_id is null until OAuth; all docs stored under "platform/"
-    const clientId: string | null = null;
-    const documentId = crypto.randomUUID();
-    const ext = file.name.split(".").pop() ?? "bin";
-    const storedFilename = `original.${ext}`;
-    const storagePath = `${clientId ?? "platform"}/${documentId}/${storedFilename}`;
+    // 4) Upload file to storage
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const storagePath = `platform/${inserted.id}/${file.name}`;
 
-    const supabase = getSupabaseClient();
-
-    // ── Insert document row (status = pending) ────────────────────────────────
-    const { error: insertError } = await supabase.from("knowledge_documents").insert({
-      id: documentId,
-      client_id: clientId,
-      type,
-      title: title.trim() || file.name,
-      source: storedFilename,
-      mime_type: mimeType,
-      status: "pending",
-      chunk_count: 0,
-    });
-
-    if (insertError) {
-      console.error("[upload] DB insert failed:", insertError.message);
-      return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
-    }
-
-    // ── Upload file to Supabase Storage ───────────────────────────────────────
-    const buffer = Buffer.from(await file.arrayBuffer());
     const { error: uploadError } = await supabase.storage
       .from("knowledge-uploads")
-      .upload(storagePath, buffer, { contentType: mimeType });
+      .upload(storagePath, fileBuffer, { contentType: file.type });
 
     if (uploadError) {
-      // Roll back document row so we don't orphan it
-      await supabase.from("knowledge_documents").delete().eq("id", documentId);
       console.error("[upload] Storage upload failed:", uploadError.message);
+      // Roll back document row
+      await supabase.from("knowledge_documents").delete().eq("id", inserted.id);
       return NextResponse.json(
         { ok: false, error: "Storage upload failed: " + uploadError.message },
         { status: 500 }
       );
     }
 
-    // ── Enqueue ingestion job ─────────────────────────────────────────────────
-    const { error: jobError } = await supabase.from("knowledge_ingest_jobs").insert({
-      document_id: documentId,
-      status: "pending",
-    });
+    // 5) Insert ingest job
+    const { error: jobError } = await supabase
+      .from("knowledge_ingest_jobs")
+      .insert({ document_id: inserted.id, status: "pending" });
 
     if (jobError) {
-      // Non-fatal: document is stored, job can be manually triggered via reindex
       console.error("[upload] Failed to create ingest job:", jobError.message);
+      // Non-fatal — document is stored, can be reindexed manually
     }
 
     console.log(
-      `[upload] document=${documentId} type=${type} mime=${mimeType} path=${storagePath} job_ok=${!jobError}`
+      `[upload] document=${inserted.id} type=${type} path=${storagePath} job_ok=${!jobError}`
     );
 
-    return NextResponse.json({ ok: true, documentId });
+    // 6) Return success
+    return NextResponse.json({ ok: true, documentId: inserted.id });
   } catch (err: any) {
     console.error("[upload] Unexpected error:", err);
     return NextResponse.json(

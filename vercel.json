@@ -1,8 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/knowledge/worker",
-      "schedule": "*/1 * * * *"
-    }
-  ]
-}
+{}

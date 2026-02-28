@@ -58,36 +58,60 @@ function UploadCard({
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  // Auto-dismiss toast after 6 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
 
     setUploading(true);
-    setError(null);
+    setToast(null);
 
     const fd = new FormData();
     fd.append("file", file);
     fd.append("type", type);
     fd.append("title", title.trim() || file.name);
-    // client_id is NOT sent — the server derives it from the session
 
-    const res = await fetch("/api/knowledge/upload", { method: "POST", body: fd });
-    const json = await res.json();
+    try {
+      const res = await fetch("/api/knowledge/upload", { method: "POST", body: fd });
 
-    if (!res.ok || !json.ok) {
-      setError(json?.error ?? "Upload failed");
+      // Safely parse JSON — server might return HTML on unexpected errors
+      let json: any = {};
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        json = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("[upload] Non-JSON response:", res.status, text);
+        json = { ok: false, error: `Server error ${res.status}` };
+      }
+
+      if (!res.ok || !json.ok) {
+        console.error("[upload] Upload failed:", json?.error);
+        setToast({ type: "error", message: json?.error ?? "Upload failed" });
+        return;
+      }
+
+      // Success: reset form and trigger list refresh
+      setFile(null);
+      setTitle("");
+      if (fileRef.current) fileRef.current.value = "";
+      setToast({ type: "success", message: "Uploaded. Processing started." });
+      onUploaded();
+    } catch (err: any) {
+      console.error("[upload] Network error:", err);
+      setToast({ type: "error", message: err?.message ?? "Network error" });
+    } finally {
       setUploading(false);
-      return;
     }
-
-    setFile(null);
-    setTitle("");
-    if (fileRef.current) fileRef.current.value = "";
-    setUploading(false);
-    onUploaded();
   }
 
   function handleDragOver(e: React.DragEvent) {
@@ -211,7 +235,17 @@ function UploadCard({
         {uploading ? t.common.uploading : t.common.upload}
       </button>
 
-      {error && <div style={styles.errorBanner}>{error}</div>}
+      {toast && (
+        <div
+          style={
+            toast.type === "success"
+              ? styles.successBanner
+              : styles.errorBanner
+          }
+        >
+          {toast.message}
+        </div>
+      )}
     </form>
   );
 }
@@ -310,6 +344,16 @@ function TabPanel({ type }: { type: KnowledgeType }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Poll every 3 s while any document is still PENDING or PROCESSING
+  useEffect(() => {
+    const hasPending = docs.some(
+      (d) => d.status === "pending" || d.status === "processing"
+    );
+    if (!hasPending) return;
+    const timer = setInterval(refresh, 3000);
+    return () => clearInterval(timer);
+  }, [docs, refresh]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -484,6 +528,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "13px",
     whiteSpace: "nowrap" as const,
     transition: "opacity 0.15s",
+  },
+  successBanner: {
+    background: "rgba(180,240,0,0.08)",
+    border: "1px solid rgba(180,240,0,0.2)",
+    color: "#B4F000",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    fontSize: "13px",
   },
   errorBanner: {
     background: "rgba(239,68,68,0.08)",

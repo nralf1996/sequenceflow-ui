@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 
-import { getSession } from "@/lib/auth";
 import { getSupabaseClient } from "@/lib/supabase";
 import { ingestDocument } from "@/lib/knowledge/ingest";
 
@@ -24,12 +23,6 @@ function resolveMimeType(file: File): string {
 }
 
 export async function POST(req: Request) {
-  // ── Auth guard ──────────────────────────────────────────────────────────────
-  const session = getSession(req);
-  if (!session) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const form = await req.formData();
     const file = form.get("file");
@@ -40,14 +33,6 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { ok: false, error: "No file provided." },
         { status: 400 }
-      );
-    }
-
-    // ── Role enforcement ──────────────────────────────────────────────────────
-    if (type === "platform" && session.role !== "admin") {
-      return NextResponse.json(
-        { ok: false, error: "Only admins can upload platform documents." },
-        { status: 403 }
       );
     }
 
@@ -66,8 +51,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ── client_id comes from session — never from request body ────────────────
-    const clientId = session.clientId; // null for admin, uuid for client
+    const clientId: string | null = null;
 
     const supabase = getSupabaseClient();
     const documentId = crypto.randomUUID();

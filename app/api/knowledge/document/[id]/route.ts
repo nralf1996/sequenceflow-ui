@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import { getSupabaseClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -8,17 +7,11 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // ── Auth guard ──────────────────────────────────────────────────────────────
-  const session = getSession(req);
-  if (!session) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const { id } = await params;
     const supabase = getSupabaseClient();
 
-    // Fetch doc to check ownership and determine storage path
+    // Fetch doc to determine storage path
     const { data: doc, error: fetchError } = await supabase
       .from("knowledge_documents")
       .select("client_id, source, type")
@@ -27,14 +20,6 @@ export async function DELETE(
 
     if (fetchError || !doc) {
       return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
-    }
-
-    // ── Ownership check ───────────────────────────────────────────────────────
-    if (session.role !== "admin") {
-      // Clients can only delete their own docs and never platform docs
-      if (doc.type === "platform" || doc.client_id !== session.clientId) {
-        return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
-      }
     }
 
     // Remove file from Supabase Storage

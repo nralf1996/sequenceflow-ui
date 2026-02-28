@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 
 import { getSupabaseClient } from "@/lib/supabase";
@@ -22,7 +22,7 @@ function resolveMimeType(file: File): string {
   return "text/plain";
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
     const file = form.get("file");

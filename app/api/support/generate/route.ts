@@ -20,6 +20,7 @@ export const runtime = "nodejs";
 
 type SupportEventPayload = {
   tenantId: string;
+  userId: string;
   requestId: string;
   source: string;
   subject: string;
@@ -36,6 +37,7 @@ async function insertSupportEvent(
 ): Promise<void> {
   const { error } = await supabase.from("support_events").insert({
     tenant_id:   event.tenantId,
+    user_id:     event.userId,
     request_id:  event.requestId,
     source:      event.source,
     subject:     event.subject.slice(0, 120),
@@ -100,8 +102,9 @@ export async function POST(req: Request) {
   // ── 1. Resolve tenant (cookie session or Bearer JWT) ──────────────────────
   let tenantId: string;
   let callerRole: string;
+  let userId: string;
   try {
-    ({ tenantId, role: callerRole } = await getTenantId(req));
+    ({ tenantId, role: callerRole, userId } = await getTenantId(req));
   } catch (err: any) {
     const status = err.message === "Not authenticated" ? 401 : 403;
     return NextResponse.json({ error: err.message }, { status });
@@ -179,6 +182,7 @@ export async function POST(req: Request) {
 
       await insertSupportEvent(supabase, {
         tenantId,
+        userId,
         requestId,
         source,
         subject,
@@ -317,6 +321,7 @@ export async function POST(req: Request) {
 
     await insertSupportEvent(supabase, {
       tenantId,
+      userId,
       requestId,
       source,
       subject,
@@ -347,6 +352,7 @@ export async function POST(req: Request) {
 
     await insertSupportEvent(supabase, {
       tenantId,
+      userId,
       requestId,
       source,
       subject,

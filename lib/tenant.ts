@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 export type TenantContext = {
   tenantId: string;
   role: string;
+  userId: string;
 };
 
 /**
@@ -102,5 +103,6 @@ export async function getTenantId(req: Request): Promise<TenantContext> {
   return {
     tenantId: data.tenant_id as string,
     role:     (data.role as string) ?? "admin",
+    userId,
   };
 }

@@ -5,9 +5,12 @@ import { createEmbedding } from "@/lib/embeddings";
 // ─── Text extraction ───────────────────────────────────────────────────────────
 async function extractText(buffer: Buffer, mimeType: string): Promise<string> {
   if (mimeType === "application/pdf") {
+    // Import the internal implementation directly to bypass index.js which
+    // tries to load a test PDF at module evaluation time (breaks Next.js build).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfParse = ((await import("pdf-parse")) as any).default;
-    const data = await pdfParse(buffer);
+    const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")) as any;
+    const parse = pdfParse.default ?? pdfParse;
+    const data = await parse(buffer) as { text: string };
     const text = data.text;
     if (!text.trim()) {
       throw new Error("PDF extraction failed: no readable text detected");

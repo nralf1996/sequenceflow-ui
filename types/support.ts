@@ -1,7 +1,6 @@
 import type { AgentConfig } from "@/lib/support/configLoader";
 
 export type SupportGenerateRequest = {
-  tenantId: string;
   subject: string;
   body: string;
   channel?: "email" | "chat" | "ticket";

@@ -4,6 +4,7 @@ import OpenAI from "openai";
 
 import { createEmbedding } from "@/lib/embeddings";
 import { getSupabaseClient } from "@/lib/supabase";
+import { getTenantId } from "@/lib/tenant";
 import { loadAgentConfig } from "@/lib/support/configLoader";
 import {
   buildSupportSystemPrompt,
@@ -96,7 +97,16 @@ export async function POST(req: Request) {
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
 
-  // ── 1. Parse body ──────────────────────────────────────────────────────────
+  // ── 1. Resolve tenant from authenticated session ───────────────────────────
+  let tenantId: string;
+  try {
+    tenantId = await getTenantId();
+  } catch (err: any) {
+    const status = err.message === "Not authenticated" ? 401 : 403;
+    return NextResponse.json({ error: err.message }, { status });
+  }
+
+  // ── 2. Parse body ──────────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let data: any;
   try {
@@ -108,15 +118,6 @@ export async function POST(req: Request) {
   console.log("=== FULL REQUEST BODY ===");
   console.log(JSON.stringify(data, null, 2));
   console.log("=== END REQUEST BODY ===");
-
-  // ── 2. Validate tenantId ───────────────────────────────────────────────────
-  const tenantId = String(data.tenantId ?? "").trim();
-  if (!tenantId) {
-    return NextResponse.json(
-      { error: "Missing required field: tenantId" },
-      { status: 400 }
-    );
-  }
 
   const supabase = getSupabaseClient();
   const source   = String(data.source ?? "api").trim();
@@ -250,7 +251,6 @@ export async function POST(req: Request) {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const ticketReq: SupportGenerateRequest = {
-      tenantId,
       subject,
       body:     ticketBody,
       channel:  data.channel,

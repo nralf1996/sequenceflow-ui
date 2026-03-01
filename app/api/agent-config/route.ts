@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
-
-// Single tenant used by the Agent Console until multi-tenant auth is introduced.
-// TODO: replace with session-based tenant resolution when auth is added.
-const DEFAULT_TENANT_ID = "034c3873-57ab-446a-aaa7-9673ce9950b5";
-
-function resolveTenantId(): string {
-  return DEFAULT_TENANT_ID;
-}
+import { getTenantId } from "@/lib/tenant";
 
 // ─── GET /api/agent-config ─────────────────────────────────────────────────────
-// Returns { tenantId, config } from tenant_agent_config.
+// Returns { tenantId, config } scoped to the authenticated user's tenant.
 
 export async function GET() {
+  let tenantId: string;
   try {
-    const tenantId = resolveTenantId();
+    tenantId = await getTenantId();
+  } catch (err: any) {
+    const status = err.message === "Not authenticated" ? 401 : 403;
+    return NextResponse.json({ error: err.message }, { status });
+  }
+
+  try {
     const supabase = getSupabaseClient();
 
     const { data, error } = await supabase
@@ -26,7 +26,7 @@ export async function GET() {
       .single();
 
     if (error || !data) {
-      // Row not yet seeded — return safe defaults so the console renders.
+      // Row not yet seeded — return safe empty defaults.
       return NextResponse.json({
         tenantId,
         config: {
@@ -54,12 +54,18 @@ export async function GET() {
 }
 
 // ─── POST /api/agent-config ────────────────────────────────────────────────────
-// Upserts { empathyEnabled, allowDiscount, maxDiscountAmount, signature } into
-// tenant_agent_config. Keyed by tenant_id.
+// Upserts config for the authenticated user's tenant.
 
 export async function POST(req: Request) {
+  let tenantId: string;
   try {
-    const tenantId = resolveTenantId();
+    tenantId = await getTenantId();
+  } catch (err: any) {
+    const status = err.message === "Not authenticated" ? 401 : 403;
+    return NextResponse.json({ error: err.message }, { status });
+  }
+
+  try {
     const body     = await req.json();
     const supabase = getSupabaseClient();
 

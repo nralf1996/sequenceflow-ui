@@ -1,5 +1,3 @@
-import { PDFParse } from "pdf-parse";
-
 import { getSupabaseClient } from "@/lib/supabase";
 import { chunkText } from "@/lib/chunkText";
 import { createEmbedding } from "@/lib/embeddings";
@@ -7,17 +5,14 @@ import { createEmbedding } from "@/lib/embeddings";
 // ─── Text extraction ───────────────────────────────────────────────────────────
 async function extractText(buffer: Buffer, mimeType: string): Promise<string> {
   if (mimeType === "application/pdf") {
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    try {
-      const result = await parser.getText();
-      const text = result.text;
-      if (!text.trim()) {
-        throw new Error("PDF extraction failed: no readable text detected");
-      }
-      return text;
-    } finally {
-      await parser.destroy();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParse = ((await import("pdf-parse")) as any).default;
+    const data = await pdfParse(buffer);
+    const text = data.text;
+    if (!text.trim()) {
+      throw new Error("PDF extraction failed: no readable text detected");
     }
+    return text;
   }
   // TXT / MD / CSV — read as UTF-8
   return buffer.toString("utf8");

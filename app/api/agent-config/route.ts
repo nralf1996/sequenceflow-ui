@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
 
-// DEFAULT_TENANT_ID is the single tenant used by the Agent Console until
-// full multi-tenant auth is introduced.
+// Single tenant used by the Agent Console until multi-tenant auth is introduced.
+// TODO: replace with session-based tenant resolution when auth is added.
+const DEFAULT_TENANT_ID = "034c3873-57ab-446a-aaa7-9673ce9950b5";
+
 function resolveTenantId(): string {
-  const id = process.env.DEFAULT_TENANT_ID;
-  if (!id) throw new Error("DEFAULT_TENANT_ID env var is not set.");
-  return id;
+  return DEFAULT_TENANT_ID;
 }
 
 // ─── GET /api/agent-config ─────────────────────────────────────────────────────

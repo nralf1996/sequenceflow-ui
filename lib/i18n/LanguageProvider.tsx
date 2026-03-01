@@ -18,8 +18,8 @@ type LanguageContextValue = {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // Default to English; localStorage read happens client-side in useEffect
-  const [language, setLanguageState] = useState<Language>("en");
+  // Default to Dutch; localStorage read happens client-side in useEffect
+  const [language, setLanguageState] = useState<Language>("nl");
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);

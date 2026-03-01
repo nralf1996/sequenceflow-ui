@@ -345,16 +345,6 @@ function TabPanel({ type }: { type: KnowledgeType }) {
     refresh();
   }, [refresh]);
 
-  // Poll every 3 s while any document is still PENDING or PROCESSING
-  useEffect(() => {
-    const hasPending = docs.some(
-      (d) => d.status === "pending" || d.status === "processing"
-    );
-    if (!hasPending) return;
-    const timer = setInterval(refresh, 3000);
-    return () => clearInterval(timer);
-  }, [docs, refresh]);
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <UploadCard type={type} onUploaded={refresh} />

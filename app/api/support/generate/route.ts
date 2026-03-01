@@ -97,10 +97,10 @@ export async function POST(req: Request) {
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
 
-  // ── 1. Resolve tenant from authenticated session ───────────────────────────
+  // ── 1. Resolve tenant (cookie session or Bearer JWT) ──────────────────────
   let tenantId: string;
   try {
-    tenantId = await getTenantId();
+    tenantId = await getTenantId(req);
   } catch (err: any) {
     const status = err.message === "Not authenticated" ? 401 : 403;
     return NextResponse.json({ error: err.message }, { status });

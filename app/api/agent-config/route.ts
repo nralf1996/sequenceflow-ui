@@ -8,7 +8,7 @@ import { getTenantId } from "@/lib/tenant";
 export async function GET(req: Request) {
   let tenantId: string;
   try {
-    tenantId = await getTenantId(req);
+    ({ tenantId } = await getTenantId(req));
   } catch (err: any) {
     const status = err.message === "Not authenticated" ? 401 : 403;
     return NextResponse.json({ error: err.message }, { status });
@@ -59,7 +59,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   let tenantId: string;
   try {
-    tenantId = await getTenantId(req);
+    ({ tenantId } = await getTenantId(req));
   } catch (err: any) {
     const status = err.message === "Not authenticated" ? 401 : 403;
     return NextResponse.json({ error: err.message }, { status });

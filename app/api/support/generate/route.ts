@@ -99,11 +99,20 @@ export async function POST(req: Request) {
 
   // ── 1. Resolve tenant (cookie session or Bearer JWT) ──────────────────────
   let tenantId: string;
+  let callerRole: string;
   try {
-    tenantId = await getTenantId(req);
+    ({ tenantId, role: callerRole } = await getTenantId(req));
   } catch (err: any) {
     const status = err.message === "Not authenticated" ? 401 : 403;
     return NextResponse.json({ error: err.message }, { status });
+  }
+
+  // ── 1b. Role gate — only admin and system may call this endpoint ───────────
+  if (!["admin", "system"].includes(callerRole)) {
+    return NextResponse.json(
+      { error: "Forbidden: insufficient role" },
+      { status: 403 }
+    );
   }
 
   // ── 2. Parse body ──────────────────────────────────────────────────────────

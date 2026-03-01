@@ -1,8 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+export type TenantContext = {
+  tenantId: string;
+  role: string;
+};
+
 /**
- * Resolves the tenant_id for the currently authenticated user.
+ * Resolves the tenant_id and role for the currently authenticated user.
  *
  * Supports two auth paths:
  *  1. Bearer token  — machine-to-machine (e.g. n8n). Reads the JWT directly
@@ -10,26 +15,23 @@ import { cookies } from "next/headers";
  *  2. Session cookie — browser / Next.js client. Falls back to the Supabase
  *     session stored in HTTP-only cookies (standard SSR flow).
  *
- * In both cases the user is looked up in the `profiles` table to resolve
- * their tenant_id.  RLS on that table is enforced via the anon key.
- *
  * Required env vars:
  *   SUPABASE_URL       — Supabase project URL
  *   SUPABASE_ANON_KEY  — public anon key (Settings → API in Supabase dashboard)
  *
  * Throws:
- *   "Not authenticated"      — no valid session or token
+ *   "Not authenticated"         — no valid session or token
  *   "Tenant not found for user" — user exists but has no profiles row
  */
-export async function getTenantId(req: Request): Promise<string> {
+export async function getTenantId(req: Request): Promise<TenantContext> {
   const authHeader = req.headers.get("authorization") ?? "";
   const isBearer   = authHeader.toLowerCase().startsWith("bearer ");
 
   let supabase: ReturnType<typeof createServerClient>;
+  let userId: string;
 
   if (isBearer) {
     // ── Bearer path (machine-to-machine) ───────────────────────────────────
-    // Use a no-op cookie adapter; the JWT is passed directly to getUser().
     supabase = createServerClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_ANON_KEY!,
@@ -49,19 +51,7 @@ export async function getTenantId(req: Request): Promise<string> {
       throw new Error("Not authenticated");
     }
 
-    // Use service-role key for the profiles lookup so RLS doesn't block it
-    // (the Bearer user may not have an active session cookie).
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("tenant_id")
-      .eq("id", user.id)
-      .single();
-
-    if (error || !data?.tenant_id) {
-      throw new Error("Tenant not found for user");
-    }
-
-    return data.tenant_id as string;
+    userId = user.id;
 
   } else {
     // ── Cookie path (browser / Next.js SSR) ───────────────────────────────
@@ -95,16 +85,22 @@ export async function getTenantId(req: Request): Promise<string> {
       throw new Error("Not authenticated");
     }
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("tenant_id")
-      .eq("id", user.id)
-      .single();
-
-    if (error || !data?.tenant_id) {
-      throw new Error("Tenant not found for user");
-    }
-
-    return data.tenant_id as string;
+    userId = user.id;
   }
+
+  // ── Profiles lookup (same for both paths) ────────────────────────────────
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("tenant_id, role")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data?.tenant_id) {
+    throw new Error("Tenant not found for user");
+  }
+
+  return {
+    tenantId: data.tenant_id as string,
+    role:     (data.role as string) ?? "admin",
+  };
 }

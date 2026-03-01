@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: Config = {
   empathyEnabled: true,
   allowDiscount: false,
   maxDiscountAmount: null,
-  signature: "Team SequenceFlow",
+  signature: "",
 };
 
 type PreviewResponse = {
@@ -28,6 +28,7 @@ type PreviewResponse = {
 
 export default function AgentConsolePage() {
   const { t } = useTranslation();
+  const [tenantId, setTenantId] = useState<string>("");
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ export default function AgentConsolePage() {
     fetch("/api/agent-config")
       .then((r) => r.json())
       .then((data) => {
+        if (data.tenantId) setTenantId(data.tenantId);
         setConfig(data?.config ?? DEFAULT_CONFIG);
       });
   }, []);
@@ -64,14 +66,17 @@ export default function AgentConsolePage() {
     setLoading(true);
     setPreview(null);
 
-    // Always read latest saved config before generating
-    let latestConfig = config;
+    // Refresh config from DB so the preview uses the latest saved values.
+    let activeTenantId = tenantId;
     try {
       const configRes = await fetch("/api/agent-config");
       if (configRes.ok) {
         const data = await configRes.json();
-        latestConfig = data?.config ?? DEFAULT_CONFIG;
-        setConfig(latestConfig);
+        if (data.tenantId) {
+          activeTenantId = data.tenantId;
+          setTenantId(data.tenantId);
+        }
+        setConfig(data?.config ?? DEFAULT_CONFIG);
       }
     } catch {
       // fall back to local state
@@ -81,8 +86,10 @@ export default function AgentConsolePage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        tenantId: activeTenantId,
         subject: "Order #1234 arrived damaged",
         body: "Hi, my product arrived damaged. What can you do?",
+        source: "preview",
         channel: "email",
         customer: {
           name: "John Doe",
@@ -94,12 +101,6 @@ export default function AgentConsolePage() {
           productName: "Office Chair",
           pricePaid: 199,
           currency: "EUR",
-        },
-        config: {
-          empathyEnabled: latestConfig.empathyEnabled,
-          allowDiscount: latestConfig.allowDiscount,
-          maxDiscountAmount: latestConfig.maxDiscountAmount ?? 0,
-          signature: latestConfig.signature,
         },
       }),
     });

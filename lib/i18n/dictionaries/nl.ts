@@ -32,6 +32,17 @@ export const nl: Dictionary = {
     aiDraftsGenerated: "AI-concepten gegenereerd",
     aiAcceptanceRate: "AI-acceptatiepercentage",
     avgResponseTime: "Gem. responstijd",
+    noQuestionsYet: "Nog geen vragen",
+    noPreviousData: "Geen eerdere data",
+    vsLastWeek: "vs afgelopen 7 dagen",
+    workloadTitle: "AI-werklast bespaard",
+    workloadSubtext: "Gebaseerd op geaccepteerde concepten",
+    workloadSavedThisMonth: "bespaard deze maand",
+    noActivityThisMonth: "Geen activiteit deze maand",
+    chartTitle: "Vragen over tijd",
+    activityTitle: "Recente activiteit",
+    noActivityFeed: "Nog geen activiteit",
+    noChartActivity: "Nog geen supportactiviteit",
   },
 
   knowledge: {

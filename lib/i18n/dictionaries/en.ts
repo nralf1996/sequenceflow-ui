@@ -30,6 +30,17 @@ export const en = {
     aiDraftsGenerated: "AI Drafts Generated",
     aiAcceptanceRate: "AI Acceptance Rate",
     avgResponseTime: "Avg Response Time",
+    noQuestionsYet: "No questions yet",
+    noPreviousData: "No previous data",
+    vsLastWeek: "vs last 7 days",
+    workloadTitle: "AI Workload Saved",
+    workloadSubtext: "Based on accepted drafts",
+    workloadSavedThisMonth: "saved this month",
+    noActivityThisMonth: "No activity this month",
+    chartTitle: "Questions Over Time",
+    activityTitle: "Recent Activity",
+    noActivityFeed: "No activity yet",
+    noChartActivity: "No support activity yet",
   },
 
   knowledge: {

@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import crypto from "crypto";
 import OpenAI from "openai";
 
@@ -17,19 +15,49 @@ import { maskEmail } from "@/types/support";
 
 export const runtime = "nodejs";
 
-const LOG_PATH = path.join(process.cwd(), "data", "support-logs.jsonl");
+// ─── Support event logging ─────────────────────────────────────────────────────
+
+type SupportEventPayload = {
+  tenantId: string;
+  requestId: string;
+  source: string;
+  subject: string;
+  intent: string | null;
+  confidence: number | null;
+  latencyMs: number;
+  draftText: string | null;
+  outcome: string;
+};
+
+async function insertSupportEvent(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  event: SupportEventPayload
+): Promise<void> {
+  const { error } = await supabase.from("support_events").insert({
+    tenant_id:   event.tenantId,
+    request_id:  event.requestId,
+    source:      event.source,
+    subject:     event.subject.slice(0, 120),
+    intent:      event.intent,
+    confidence:  event.confidence,
+    template_id: null,
+    latency_ms:  event.latencyMs,
+    draft_text:  event.draftText,
+    outcome:     event.outcome,
+  });
+
+  if (error) {
+    console.warn("[generate] support_event insert failed:", error.message);
+  }
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
 }
 
-async function appendLog(line: object) {
-  await fs.appendFile(LOG_PATH, JSON.stringify(line) + "\n", "utf-8").catch(
-    () => {}
-  );
-}
-
-function extractEmail(value: any): string {
+function extractEmail(value: unknown): string {
   const str = String(value ?? "").trim();
   if (!str) return "";
   const match = str.match(/<([^>]+)>/);
@@ -37,7 +65,7 @@ function extractEmail(value: any): string {
 }
 
 function extractAndParseJSON(raw: string) {
-  let cleaned = raw
+  const cleaned = raw
     .trim()
     .replace(/```json/gi, "")
     .replace(/```/g, "")
@@ -50,56 +78,69 @@ function extractAndParseJSON(raw: string) {
   return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
 }
 
-// ─── Damage keywords ──────────────────────────────────────────────────────────
+// ─── Damage keywords ───────────────────────────────────────────────────────────
+
 const DAMAGE_KEYWORDS = [
-  "beschadigd",
-  "kapot",
-  "defect",
-  "ingedeukt",
-  "scheur",
-  "kras",
-  "damaged",
-  "broken",
+  "beschadigd", "kapot", "defect", "ingedeukt", "scheur", "kras",
+  "damaged", "broken",
 ];
 
-// ─── Retrieval thresholds ─────────────────────────────────────────────────────
-const HIGH_THRESHOLD = 0.6;
+// ─── Retrieval thresholds ──────────────────────────────────────────────────────
+
+const HIGH_THRESHOLD   = 0.6;
 const MEDIUM_THRESHOLD = 0.4;
+
+// ─── POST handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
 
+  // ── 1. Parse body ──────────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let data: any;
   try {
-    const data = await req.json();
+    data = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    console.log("=== FULL REQUEST BODY ===");
-    console.log(JSON.stringify(data, null, 2));
-    console.log("=== END REQUEST BODY ===");
+  console.log("=== FULL REQUEST BODY ===");
+  console.log(JSON.stringify(data, null, 2));
+  console.log("=== END REQUEST BODY ===");
 
-    // ── Input mapping ────────────────────────────────────────────────────────
-    const subject: string = (data.subject || "").trim();
-    const ticketBody: string = (
-      data.body ??
-      data.text ??
-      data.snippet ??
-      ""
+  // ── 2. Validate tenantId ───────────────────────────────────────────────────
+  const tenantId = String(data.tenantId ?? "").trim();
+  if (!tenantId) {
+    return NextResponse.json(
+      { error: "Missing required field: tenantId" },
+      { status: 400 }
+    );
+  }
+
+  const supabase = getSupabaseClient();
+  const source   = String(data.source ?? "api").trim();
+
+  // subject is hoisted so the catch block can log it even on early failures
+  let subject = "";
+
+  try {
+    // ── 3. Map incoming fields ───────────────────────────────────────────────
+    subject = String(data.subject ?? "").trim();
+    const ticketBody: string = String(
+      data.body ?? data.text ?? data.snippet ?? ""
     ).trim();
     const from: string = extractEmail(
-      data.from ??
-      data.From ??
-      data.sender ??
-      data.email
+      data.from ?? data.From ?? data.sender ?? data.email
     );
     const customerName: string = data.customer?.name || from || "";
-    const config = await loadAgentConfig();
-    console.log("CONFIG USED IN GENERATE:", JSON.stringify(config));
+
+    // ── 4. Load tenant config (throws if tenant unknown) ─────────────────────
+    const config = await loadAgentConfig(tenantId);
+    console.log("CONFIG USED IN GENERATE:", JSON.stringify({ tenantId, ...config }));
 
     if (!subject && !ticketBody) {
-      return NextResponse.json(
-        { error: "Missing subject/body" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing subject/body" }, { status: 400 });
     }
 
     const text = `${subject} ${ticketBody}`.toLowerCase();
@@ -123,32 +164,31 @@ export async function POST(req: Request) {
       }
 
       console.log(
-        `[generate] route=AUTO_REPLY confidence=0.95 hasKnowledge=false`
+        `[generate] tenant=${tenantId} route=AUTO_REPLY confidence=0.95`
       );
 
-      await appendLog({
-        ts: new Date().toISOString(),
+      await insertSupportEvent(supabase, {
+        tenantId,
         requestId,
-        latencyMs: Date.now() - startedAt,
-        route: "AUTO_REPLY",
+        source,
+        subject,
+        intent:     "damage",
         confidence: 0.95,
-        subject: subject.slice(0, 120),
+        latencyMs:  Date.now() - startedAt,
+        draftText:  replyBody,
+        outcome:    "auto_reply",
       });
 
       return NextResponse.json({
-        status: "AUTO_REPLY",
+        status:    "AUTO_REPLY",
         confidence: 0.95,
-        routing: "AUTO_REPLY",
+        routing:   "AUTO_REPLY",
         draft: {
           subject: `Re: ${subject}`,
-          body: replyBody,
+          body:    replyBody,
           from,
         },
-        knowledge: {
-          used: false,
-          topSimilarity: null,
-          sources: [],
-        },
+        knowledge: { used: false, topSimilarity: null, sources: [] },
       });
     }
 
@@ -164,23 +204,22 @@ export async function POST(req: Request) {
     let highestScore = 0;
 
     try {
-      const supabase = getSupabaseClient();
       const queryEmbedding = await createEmbedding(`${subject} ${ticketBody}`);
 
       const { data: chunks, error: rpcError } = await supabase.rpc(
         "match_knowledge_chunks",
         {
-          query_embedding: queryEmbedding,
-          filter_client_id: null,      // null = platform-wide chunks
-          match_threshold: MEDIUM_THRESHOLD,
-          match_count: 10,
+          query_embedding:  queryEmbedding,
+          filter_client_id: null,       // null = platform-wide chunks only
+          match_threshold:  MEDIUM_THRESHOLD,
+          match_count:      10,
         }
       );
 
       if (!rpcError && Array.isArray(chunks) && chunks.length > 0) {
         highestScore = chunks[0]?.similarity ?? 0;
 
-        const highMatches = chunks.filter((c: any) => c.similarity >= HIGH_THRESHOLD);
+        const highMatches   = chunks.filter((c: any) => c.similarity >= HIGH_THRESHOLD);
         const mediumMatches = chunks.filter(
           (c: any) => c.similarity >= MEDIUM_THRESHOLD && c.similarity < HIGH_THRESHOLD
         );
@@ -190,10 +229,10 @@ export async function POST(req: Request) {
           : mediumMatches.slice(0, 5);
 
         topItems = selected.map((c: any) => ({
-          chunk: c.content as string,
-          score: c.similarity as number,
-          documentId: c.document_id as string,
-          chunkId: c.id as string,
+          chunk:      c.content      as string,
+          score:      c.similarity   as number,
+          documentId: c.document_id  as string,
+          chunkId:    c.id           as string,
         }));
       }
 
@@ -204,31 +243,32 @@ export async function POST(req: Request) {
       console.warn("[generate] knowledge retrieval error:", kErr?.message);
     }
 
-    const usedKnowledge = topItems.length > 0;
+    const usedKnowledge    = topItems.length > 0;
     const knowledgeContext = topItems.map((s) => s.chunk).join("\n\n---\n\n");
 
     // ── STEP C: LLM generate ─────────────────────────────────────────────────
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const ticketReq: SupportGenerateRequest = {
+      tenantId,
       subject,
-      body: ticketBody,
-      channel: data.channel,
+      body:     ticketBody,
+      channel:  data.channel,
       customer: data.customer,
-      order: data.order,
+      order:    data.order,
     };
 
-    const baseSystem = buildSupportSystemPrompt(config);
+    const baseSystem  = buildSupportSystemPrompt(config);
     const systemPrompt = usedKnowledge
       ? `${baseSystem}\n\nRelevante interne kennis:\n${knowledgeContext}`
       : baseSystem;
     const userPrompt = buildSupportUserPrompt(ticketReq, config);
 
-    const completion = await client.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user",   content: userPrompt   },
       ],
       max_completion_tokens: 600,
     });
@@ -236,23 +276,20 @@ export async function POST(req: Request) {
     const raw = completion.choices?.[0]?.message?.content;
     if (!raw) throw new Error("Model returned empty content.");
 
-    const parsed = extractAndParseJSON(raw);
+    const parsed    = extractAndParseJSON(raw);
     const validated = validateSupportResponse(parsed);
 
-    // ── STEP D: Confidence scoring ───────────────────────────────────────────
-    const llmConfidence = clamp01(validated.confidence);
+    // ── STEP D: Confidence scoring ────────────────────────────────────────────
+    const llmConfidence   = clamp01(validated.confidence);
     const finalConfidence = usedKnowledge
       ? clamp01(highestScore * 0.6 + llmConfidence * 0.4)
       : llmConfidence;
 
-    // ── STEP E: Routing ──────────────────────────────────────────────────────
-    const needsHuman =
-      finalConfidence < 0.6 || validated.status === "NEEDS_HUMAN";
-    const routing: "AUTO" | "HUMAN_REVIEW" = needsHuman
-      ? "HUMAN_REVIEW"
-      : "AUTO";
+    // ── STEP E: Routing ───────────────────────────────────────────────────────
+    const needsHuman = finalConfidence < 0.6 || validated.status === "NEEDS_HUMAN";
+    const routing: "AUTO" | "HUMAN_REVIEW" = needsHuman ? "HUMAN_REVIEW" : "AUTO";
 
-    // Append signature
+    // Append signature server-side (never in LLM prompt)
     if (config?.signature?.trim()) {
       validated.draft.body =
         validated.draft.body.trim() + "\n\n" + config.signature.trim();
@@ -266,43 +303,49 @@ export async function POST(req: Request) {
     }
 
     console.log(
-      `[generate] route=${routing} confidence=${finalConfidence.toFixed(2)} hasKnowledge=${usedKnowledge}`
+      `[generate] tenant=${tenantId} route=${routing} confidence=${finalConfidence.toFixed(2)} hasKnowledge=${usedKnowledge}`
     );
 
-    await appendLog({
-      ts: new Date().toISOString(),
+    await insertSupportEvent(supabase, {
+      tenantId,
       requestId,
-      latencyMs: Date.now() - startedAt,
-      route: routing,
+      source,
+      subject,
+      intent:     null,   // intent classification not yet implemented for LLM path
       confidence: finalConfidence,
-      model: completion.model,
-      subject: subject.slice(0, 120),
-      customerEmail: maskEmail(data.customer?.email),
+      latencyMs:  Date.now() - startedAt,
+      draftText:  validated.draft.body,
+      outcome:    routing === "AUTO" ? "auto" : "human_review",
     });
 
     return NextResponse.json({
-      status: validated.status,
+      status:     validated.status,
       confidence: finalConfidence,
       routing,
       draft: { ...validated.draft, from },
       knowledge: {
-        used: usedKnowledge,
+        used:          usedKnowledge,
         topSimilarity: highestScore || null,
-        sources: topItems.map((s) => ({
+        sources:       topItems.map((s) => ({
           documentId: s.documentId,
-          chunkId: s.chunkId,
+          chunkId:    s.chunkId,
         })),
       },
     });
+
   } catch (err: any) {
     const errorMessage = String(err?.message ?? err);
 
-    await appendLog({
-      ts: new Date().toISOString(),
+    await insertSupportEvent(supabase, {
+      tenantId,
       requestId,
-      latencyMs: Date.now() - startedAt,
-      route: "ERROR",
-      error: errorMessage,
+      source,
+      subject,
+      intent:     null,
+      confidence: null,
+      latencyMs:  Date.now() - startedAt,
+      draftText:  null,
+      outcome:    "error",
     });
 
     return NextResponse.json({ error: errorMessage }, { status: 500 });

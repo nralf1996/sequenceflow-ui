@@ -254,26 +254,12 @@ function UploadCard({
 function DocRow({
   doc,
   onDeleted,
-  onReindexed,
 }: {
   doc: KnowledgeDoc;
   onDeleted: () => void;
-  onReindexed: () => void;
 }) {
   const { t } = useTranslation();
-  const [reindexing, setReindexing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  async function handleReindex() {
-    setReindexing(true);
-    await fetch("/api/knowledge/reindex", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId: doc.id }),
-    });
-    setReindexing(false);
-    onReindexed();
-  }
 
   async function handleDelete() {
     if (!confirm(`${t.common.delete} "${doc.title}"?`)) return;
@@ -307,14 +293,6 @@ function DocRow({
       </div>
 
       <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-        <button
-          onClick={handleReindex}
-          disabled={reindexing || doc.status === "processing"}
-          style={styles.actionButton}
-        >
-          {reindexing ? "…" : t.common.reindex}
-        </button>
-
         <button
           onClick={handleDelete}
           disabled={deleting}
@@ -360,7 +338,6 @@ function TabPanel({ type }: { type: KnowledgeType }) {
               key={doc.id}
               doc={doc}
               onDeleted={refresh}
-              onReindexed={refresh}
             />
           ))}
         </div>

@@ -53,6 +53,7 @@ export async function getTenantId(req: Request): Promise<TenantContext> {
     }
 
     userId = user.id;
+    console.log("[tenant] Bearer auth user:", userId);
 
   } else {
     // ── Cookie path (browser / Next.js SSR) ───────────────────────────────
@@ -87,6 +88,7 @@ export async function getTenantId(req: Request): Promise<TenantContext> {
     }
 
     userId = user.id;
+    console.log("[tenant] Cookie auth user:", userId);
   }
 
   // ── Profiles lookup (same for both paths) ────────────────────────────────
@@ -100,9 +102,11 @@ export async function getTenantId(req: Request): Promise<TenantContext> {
     throw new Error("Tenant not found for user");
   }
 
-  return {
+  const ctx = {
     tenantId: data.tenant_id as string,
     role:     (data.role as string) ?? "admin",
     userId,
   };
+  console.log("[tenant] TenantContext:", ctx);
+  return ctx;
 }

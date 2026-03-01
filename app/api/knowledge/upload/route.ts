@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSupabaseClient } from "@/lib/supabase";
+import { processDocument } from "@/lib/ingest/processDocument";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,7 +61,6 @@ export async function POST(req: NextRequest) {
 
     if (uploadError) {
       console.error("[upload] Storage upload failed:", uploadError.message);
-      // Roll back document row
       await supabase.from("knowledge_documents").delete().eq("id", inserted.id);
       return NextResponse.json(
         { ok: false, error: "Storage upload failed: " + uploadError.message },
@@ -68,19 +68,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5) Insert ingest job
-    const { error: jobError } = await supabase
-      .from("knowledge_ingest_jobs")
-      .insert({ document_id: inserted.id, status: "pending" });
-
-    if (jobError) {
-      console.error("[upload] Failed to create ingest job:", jobError.message);
-      // Non-fatal — document is stored, can be reindexed manually
-    }
-
-    console.log(
-      `[upload] document=${inserted.id} type=${type} path=${storagePath} job_ok=${!jobError}`
-    );
+    // 5) Run ingest synchronously — extracts text, chunks, embeds, marks ready
+    console.log(`[upload] Starting ingest for document=${inserted.id}`);
+    await processDocument(inserted.id, fileBuffer);
+    console.log(`[upload] Ingest complete for document=${inserted.id}`);
 
     // 6) Return success
     return NextResponse.json({ ok: true, documentId: inserted.id });

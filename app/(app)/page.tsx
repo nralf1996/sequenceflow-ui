@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { DashboardClient, type SystemStatus } from "./DashboardClient";
+import { DashboardClient, type SystemStatus } from "./dashboard/DashboardClient";
 
 // Server component: runs status checks, passes typed keys to the client component.
 // The client component handles translated label rendering.

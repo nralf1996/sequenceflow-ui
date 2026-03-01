@@ -10,7 +10,7 @@ export function Sidebar() {
   const { t } = useTranslation();
 
   const navItems = [
-    { label: t.sidebar.dashboard,    href: "/dashboard" },
+    { label: t.sidebar.dashboard,    href: "/" },
     { label: t.sidebar.knowledge,    href: "/knowledge" },
     { label: t.sidebar.agentConsole, href: "/agent-console" },
   ];
@@ -34,7 +34,7 @@ export function Sidebar() {
       {/* Nav items */}
       <nav className="flex flex-col gap-0.5 px-3 pt-3">
         {navItems.map(({ label, href }) => {
-          const isActive = pathname === href || pathname.startsWith(href + "/");
+          const isActive = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSupabaseClient } from "@/lib/supabase";
-import { ingestDocument } from "@/lib/knowledge/ingest";
+import { processDocument } from "@/lib/ingest/processDocument";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,8 +49,7 @@ async function runWorker() {
     );
 
     try {
-      // ingestDocument handles download, extraction, chunking, embedding, status updates
-      await ingestDocument(job.document_id);
+      await processDocument(job.document_id);
 
       await supabase
         .from("knowledge_ingest_jobs")

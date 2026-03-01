@@ -28,20 +28,10 @@ export const nl: Dictionary = {
   dashboard: {
     title: "Dashboard",
     subtitle: "Overzicht van uw SupportFlow OS.",
-    documents: "Documenten",
-    totalCharacters: "Totaal tekens",
-    aiConfidence: "AI-betrouwbaarheid",
+    customerQuestions: "Klantvragen",
+    aiDraftsGenerated: "AI-concepten gegenereerd",
+    aiAcceptanceRate: "AI-acceptatiepercentage",
     avgResponseTime: "Gem. responstijd",
-    systemStatus: "Systeemstatus",
-    knowledgeEngine: "Kennismotor",
-    pdfExtraction: "PDF-extractie",
-    vectorIndex: "Vectorindex",
-    // Status value labels
-    active: "Actief",
-    operational: "Operationeel",
-    unavailable: "Niet beschikbaar",
-    connected: "Verbonden",
-    notConnected: "Niet verbonden",
   },
 
   knowledge: {

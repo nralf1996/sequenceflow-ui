@@ -26,20 +26,10 @@ export const en = {
   dashboard: {
     title: "Dashboard",
     subtitle: "Overview of your SupportFlow OS.",
-    documents: "Documents",
-    totalCharacters: "Total Characters",
-    aiConfidence: "AI Confidence",
+    customerQuestions: "Customer Questions",
+    aiDraftsGenerated: "AI Drafts Generated",
+    aiAcceptanceRate: "AI Acceptance Rate",
     avgResponseTime: "Avg Response Time",
-    systemStatus: "System Status",
-    knowledgeEngine: "Knowledge Engine",
-    pdfExtraction: "PDF Extraction",
-    vectorIndex: "Vector Index",
-    // Status value labels
-    active: "Active",
-    operational: "Operational",
-    unavailable: "Unavailable",
-    connected: "Connected",
-    notConnected: "Not Connected",
   },
 
   knowledge: {

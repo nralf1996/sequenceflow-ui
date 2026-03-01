@@ -3,35 +3,26 @@
 import type React from "react";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
-// Typed status keys — the server sends these, the client maps to translated labels
-export type SystemStatus = {
-  knowledgeEngine: "active" | "unavailable";
-  pdfExtraction: "operational" | "unavailable";
-  vectorIndex: "connected" | "not_connected";
+export type BusinessMetrics = {
+  customerQuestions: number;
+  aiDraftsGenerated: number;
+  aiAcceptanceRate: number | null;
+  avgResponseTimeMs: number | null;
 };
 
-export function DashboardClient({ status }: { status: SystemStatus }) {
+function formatResponseTime(ms: number | null): string {
+  if (ms === null) return "—";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatRate(rate: number | null): string {
+  if (rate === null) return "—";
+  return `${Math.round(rate * 100)}%`;
+}
+
+export function DashboardClient({ metrics }: { metrics: BusinessMetrics }) {
   const { t } = useTranslation();
-
-  // Map typed keys to translated labels
-  const statusLabels = {
-    knowledgeEngine:
-      status.knowledgeEngine === "active" ? t.dashboard.active : t.dashboard.unavailable,
-    pdfExtraction:
-      status.pdfExtraction === "operational"
-        ? t.dashboard.operational
-        : t.dashboard.unavailable,
-    vectorIndex:
-      status.vectorIndex === "connected"
-        ? t.dashboard.connected
-        : t.dashboard.notConnected,
-  };
-
-  const isGreen = {
-    knowledgeEngine: status.knowledgeEngine === "active",
-    pdfExtraction: status.pdfExtraction === "operational",
-    vectorIndex: status.vectorIndex === "connected",
-  };
 
   return (
     <div style={styles.page}>
@@ -42,50 +33,25 @@ export function DashboardClient({ status }: { status: SystemStatus }) {
 
       <div style={styles.grid}>
         <div style={styles.card} className="card-hover">
-          <div style={styles.metricValue}>12</div>
-          <div style={styles.metricLabel}>{t.dashboard.documents}</div>
+          <div style={styles.metricValue}>{metrics.customerQuestions}</div>
+          <div style={styles.metricLabel}>{t.dashboard.customerQuestions}</div>
         </div>
 
         <div style={styles.card} className="card-hover">
-          <div style={styles.metricValue}>8,987</div>
-          <div style={styles.metricLabel}>{t.dashboard.totalCharacters}</div>
+          <div style={styles.metricValue}>{metrics.aiDraftsGenerated}</div>
+          <div style={styles.metricLabel}>{t.dashboard.aiDraftsGenerated}</div>
         </div>
 
         <div style={styles.card} className="card-hover">
-          <div style={{ ...styles.metricValue, color: "#B4F000" }}>92%</div>
-          <div style={styles.metricLabel}>{t.dashboard.aiConfidence}</div>
+          <div style={{ ...styles.metricValue, color: metrics.aiAcceptanceRate !== null ? "#B4F000" : "var(--text)" }}>
+            {formatRate(metrics.aiAcceptanceRate)}
+          </div>
+          <div style={styles.metricLabel}>{t.dashboard.aiAcceptanceRate}</div>
         </div>
 
         <div style={styles.card} className="card-hover">
-          <div style={styles.metricValue}>1.8s</div>
+          <div style={styles.metricValue}>{formatResponseTime(metrics.avgResponseTimeMs)}</div>
           <div style={styles.metricLabel}>{t.dashboard.avgResponseTime}</div>
-        </div>
-      </div>
-
-      <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>{t.dashboard.systemStatus}</h2>
-
-        <div style={styles.statusCard}>
-          <div style={styles.statusRow}>
-            <span style={styles.statusLabel}>{t.dashboard.knowledgeEngine}</span>
-            <span style={isGreen.knowledgeEngine ? styles.statusGreen : styles.statusYellow}>
-              {statusLabels.knowledgeEngine}
-            </span>
-          </div>
-
-          <div style={{ ...styles.statusRow, ...styles.statusDivider }}>
-            <span style={styles.statusLabel}>{t.dashboard.pdfExtraction}</span>
-            <span style={isGreen.pdfExtraction ? styles.statusGreen : styles.statusYellow}>
-              {statusLabels.pdfExtraction}
-            </span>
-          </div>
-
-          <div style={{ ...styles.statusRow, ...styles.statusDivider }}>
-            <span style={styles.statusLabel}>{t.dashboard.vectorIndex}</span>
-            <span style={isGreen.vectorIndex ? styles.statusGreen : styles.statusYellow}>
-              {statusLabels.vectorIndex}
-            </span>
-          </div>
         </div>
       </div>
     </div>
@@ -120,7 +86,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
     gap: "16px",
-    marginBottom: "52px",
   },
   card: {
     background: "var(--surface)",
@@ -141,50 +106,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12px",
     color: "var(--muted)",
     letterSpacing: "0.01em",
-  },
-  section: {
-    marginTop: "8px",
-  },
-  sectionTitle: {
-    fontSize: "15px",
-    fontWeight: 600,
-    marginBottom: "14px",
-    color: "var(--text)",
-    letterSpacing: "-0.01em",
-  },
-  statusCard: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    padding: "4px 0",
-    borderRadius: "14px",
-    display: "flex",
-    flexDirection: "column",
-  },
-  statusRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    fontSize: "13px",
-    padding: "14px 24px",
-  },
-  statusDivider: {
-    borderTop: "1px solid var(--border)",
-  },
-  statusLabel: {
-    color: "var(--text)",
-  },
-  statusGreen: {
-    color: "#B4F000",
-    fontWeight: 600,
-    fontSize: "11px",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase" as const,
-  },
-  statusYellow: {
-    color: "#eab308",
-    fontWeight: 600,
-    fontSize: "11px",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase" as const,
   },
 };

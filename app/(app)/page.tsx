@@ -1,41 +1,55 @@
 import fs from "fs/promises";
 import path from "path";
-import { DashboardClient, type SystemStatus } from "./dashboard/DashboardClient";
+import { DashboardClient, type BusinessMetrics } from "./dashboard/DashboardClient";
 
-// Server component: runs status checks, passes typed keys to the client component.
-// The client component handles translated label rendering.
-async function getSystemStatus(): Promise<SystemStatus> {
-  // Knowledge Engine: always active if the page renders
-  const knowledgeEngine = "active" as const;
+const LOG_PATH = path.join(process.cwd(), "data", "support-logs.jsonl");
 
-  // PDF Extraction: check if index.json exists
-  let pdfExtraction: SystemStatus["pdfExtraction"] = "unavailable";
+async function getBusinessMetrics(): Promise<BusinessMetrics> {
+  type LogEntry = { latencyMs?: number; route?: string };
+  let entries: LogEntry[] = [];
+
   try {
-    await fs.access(path.join(process.cwd(), "public", "uploads", "index.json"));
-    pdfExtraction = "operational";
+    const raw = await fs.readFile(LOG_PATH, "utf8");
+    entries = raw
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line) as LogEntry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((e): e is LogEntry => e !== null);
   } catch {
-    // file does not exist
+    // log file missing — no requests yet
   }
 
-  // Vector Index: check if vector-store.json exists and has entries
-  let vectorIndex: SystemStatus["vectorIndex"] = "not_connected";
-  try {
-    const raw = await fs.readFile(
-      path.join(process.cwd(), "public", "uploads", "vector-store.json"),
-      "utf8"
-    );
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      vectorIndex = "connected";
-    }
-  } catch {
-    // file missing or invalid
-  }
+  const customerQuestions = entries.length;
 
-  return { knowledgeEngine, pdfExtraction, vectorIndex };
+  const draftRoutes = new Set(["AUTO", "AUTO_REPLY", "HUMAN_REVIEW"]);
+  const draftEntries = entries.filter((e) => e.route && draftRoutes.has(e.route));
+  const aiDraftsGenerated = draftEntries.length;
+
+  // Auto-routed (no human review needed) as a proxy for acceptance
+  // TODO: implement true no-edit tracking when Gmail draft events are available
+  const autoCount = entries.filter(
+    (e) => e.route === "AUTO" || e.route === "AUTO_REPLY"
+  ).length;
+  const aiAcceptanceRate = aiDraftsGenerated > 0 ? autoCount / aiDraftsGenerated : null;
+
+  const latencies = entries
+    .filter((e) => typeof e.latencyMs === "number")
+    .map((e) => e.latencyMs as number);
+  const avgResponseTimeMs =
+    latencies.length > 0
+      ? latencies.reduce((a, b) => a + b, 0) / latencies.length
+      : null;
+
+  return { customerQuestions, aiDraftsGenerated, aiAcceptanceRate, avgResponseTimeMs };
 }
 
 export default async function DashboardPage() {
-  const status = await getSystemStatus();
-  return <DashboardClient status={status} />;
+  const metrics = await getBusinessMetrics();
+  return <DashboardClient metrics={metrics} />;
 }

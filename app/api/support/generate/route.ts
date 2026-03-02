@@ -10,6 +10,11 @@ import {
   buildSupportSystemPrompt,
   buildSupportUserPrompt,
 } from "@/lib/support/promptBuilder";
+import {
+  loadTemplates,
+  selectTemplate,
+  FALLBACK_BLUEPRINT,
+} from "@/lib/support/templateLoader";
 import { validateSupportResponse } from "@/lib/support/validateSupportResponse";
 import type { SupportGenerateRequest } from "@/types/support";
 import { maskEmail } from "@/types/support";
@@ -26,6 +31,7 @@ type SupportEventPayload = {
   subject: string;
   intent: string | null;
   confidence: number | null;
+  templateId: string | null;
   latencyMs: number;
   draftText: string | null;
   outcome: string;
@@ -43,7 +49,7 @@ async function insertSupportEvent(
     subject:     event.subject.slice(0, 120),
     intent:      event.intent,
     confidence:  event.confidence,
-    template_id: null,
+    template_id: event.templateId,
     latency_ms:  event.latencyMs,
     draft_text:  event.draftText,
     outcome:     event.outcome,
@@ -148,6 +154,10 @@ export async function POST(req: Request) {
     );
     const customerName: string = data.customer?.name || from || "";
 
+    // Intent from request body (n8n Intent Classifier sends this field)
+    const resolvedIntent: string | null =
+      String(data.intent ?? "").trim() || null;
+
     // ── 4. Load tenant config (throws if tenant unknown) ─────────────────────
     const config = await loadAgentConfig(tenantId);
     console.log("CONFIG USED IN GENERATE:", JSON.stringify({ tenantId, ...config }));
@@ -188,6 +198,7 @@ export async function POST(req: Request) {
         subject,
         intent:     "damage",
         confidence: 0.95,
+        templateId: null,
         latencyMs:  Date.now() - startedAt,
         draftText:  replyBody,
         outcome:    "auto_reply",
@@ -260,6 +271,16 @@ export async function POST(req: Request) {
     const usedKnowledge    = topItems.length > 0;
     const knowledgeContext = topItems.map((s) => s.chunk).join("\n\n---\n\n");
 
+    // ── STEP C1: Load tenant templates & select blueprint ─────────────────────
+    const templates    = await loadTemplates(tenantId);
+    const selectedTpl  = selectTemplate(templates, resolvedIntent);
+    const blueprint    = selectedTpl?.templateText ?? FALLBACK_BLUEPRINT;
+    const selectedTplId = selectedTpl?.id ?? null;
+
+    console.log(
+      `[generate] tenant=${tenantId} intent=${resolvedIntent ?? "none"} template=${selectedTplId ?? "hardcoded_fallback"}`
+    );
+
     // ── STEP C: LLM generate ─────────────────────────────────────────────────
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -271,7 +292,7 @@ export async function POST(req: Request) {
       order:    data.order,
     };
 
-    const baseSystem  = buildSupportSystemPrompt(config);
+    const baseSystem  = buildSupportSystemPrompt(config, blueprint);
     const systemPrompt = usedKnowledge
       ? `${baseSystem}\n\nRelevante interne kennis:\n${knowledgeContext}`
       : baseSystem;
@@ -325,8 +346,9 @@ export async function POST(req: Request) {
       requestId,
       source,
       subject,
-      intent:     null,   // intent classification not yet implemented for LLM path
+      intent:     resolvedIntent,
       confidence: finalConfidence,
+      templateId: selectedTplId,
       latencyMs:  Date.now() - startedAt,
       draftText:  validated.draft.body,
       outcome:    routing === "AUTO" ? "auto" : "human_review",
@@ -358,6 +380,7 @@ export async function POST(req: Request) {
       subject,
       intent:     null,
       confidence: null,
+      templateId: null,
       latencyMs:  Date.now() - startedAt,
       draftText:  null,
       outcome:    "error",

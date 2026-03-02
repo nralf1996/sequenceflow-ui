@@ -1,7 +1,10 @@
 import type { AgentConfig } from "@/lib/support/configLoader";
 import type { SupportGenerateRequest } from "@/types/support";
 
-export function buildSupportSystemPrompt(config: AgentConfig) {
+export function buildSupportSystemPrompt(
+  config: AgentConfig,
+  templateBlueprint?: string
+) {
   const empathyRule = config.empathyEnabled
     ? "Toon gepaste empathie waar nodig, maar blijf feitelijk."
     : "Gebruik geen empathische zinnen. Houd het functioneel.";
@@ -78,6 +81,11 @@ VOORBEELD:
   },
   "actions": [],
   "reasons": []
+}
+${
+  templateBlueprint
+    ? `\nANTWOORD SJABLOON (BLAUWDRUK):\nGebruik het volgende sjabloon als basis voor de toon, structuur en inhoud van je antwoord. Pas de tekst aan op de situatie van de klant, maar wijk niet af van de stijl en het beleid.\n\n${templateBlueprint}\n`
+    : ""
 }
 `;
 }

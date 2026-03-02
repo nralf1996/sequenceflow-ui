@@ -18,13 +18,21 @@ export async function POST(req: NextRequest) {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {},
+        setAll: (cookiesToSet) => {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Route handlers cannot always set cookies (e.g. after streaming starts).
+          }
+        },
       },
     }
   );
 
-  const { data: { session } } = await supabaseAuth.auth.getSession();
-  if (!session) {
+  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+  if (authError || !user) {
     return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
   }
 
@@ -32,7 +40,7 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseClient();
   let tenantId: string;
   try {
-    tenantId = await resolveTenant(supabase, session.user.id);
+    tenantId = await resolveTenant(supabase, user.id);
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 403 });
   }

@@ -94,6 +94,17 @@ const DAMAGE_KEYWORDS = [
   "damaged", "broken",
 ];
 
+// ─── Intent classifier ─────────────────────────────────────────────────────────
+
+type Intent = "order_status" | "return_request" | "complaint" | "fallback";
+
+function classifyIntent(text: string): Intent {
+  if (/bestelling|order|status|where is my|waar is mijn/.test(text)) return "order_status";
+  if (/retour|return|terugsturen|refund/.test(text))                  return "return_request";
+  if (/klacht|complaint|ontevreden|dissatisfied/.test(text))          return "complaint";
+  return "fallback";
+}
+
 // ─── Retrieval thresholds ──────────────────────────────────────────────────────
 
 const HIGH_THRESHOLD   = 0.6;
@@ -154,10 +165,6 @@ export async function POST(req: Request) {
     );
     const customerName: string = data.customer?.name || from || "";
 
-    // Intent from request body (n8n Intent Classifier sends this field)
-    const resolvedIntent: string | null =
-      String(data.intent ?? "").trim() || null;
-
     // ── 4. Load tenant config (throws if tenant unknown) ─────────────────────
     const config = await loadAgentConfig(tenantId);
     console.log("CONFIG USED IN GENERATE:", JSON.stringify({ tenantId, ...config }));
@@ -166,7 +173,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing subject/body" }, { status: 400 });
     }
 
-    const text = `${subject} ${ticketBody}`.toLowerCase();
+    const text           = `${subject} ${ticketBody}`.toLowerCase();
+    const resolvedIntent = classifyIntent(text);
+
+    console.log(`[generate] tenant=${tenantId} classifiedIntent=${resolvedIntent}`);
 
     // ── STEP A: Damage rule (deterministic) ──────────────────────────────────
     const damageMatch = DAMAGE_KEYWORDS.find((k) => text.includes(k));
@@ -278,7 +288,7 @@ export async function POST(req: Request) {
     const selectedTplId = selectedTpl?.id ?? null;
 
     console.log(
-      `[generate] tenant=${tenantId} intent=${resolvedIntent ?? "none"} template=${selectedTplId ?? "hardcoded_fallback"}`
+      `[generate] tenant=${tenantId} intent=${resolvedIntent} template=${selectedTplId ?? "hardcoded_fallback"}`
     );
 
     // ── STEP C: LLM generate ─────────────────────────────────────────────────

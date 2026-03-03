@@ -248,12 +248,11 @@ export default function LoginPage() {
 
       {/* ── Right panel ── */}
       <div
-        className="hidden md:flex md:w-[60%] md:items-center md:justify-center"
+        className="flex w-full items-center justify-center md:w-[60%] md:rounded-tl-[20px] md:rounded-bl-[20px]"
         style={{
           background: "linear-gradient(145deg, #0d1117 0%, #0f172a 45%, #1a1a2e 100%)",
           position: "relative",
           overflow: "hidden",
-          borderRadius: "20px 0 0 20px",
         }}
       >
         {/* Indigo glow top-right */}
@@ -277,14 +276,14 @@ export default function LoginPage() {
 
           {/* Headline */}
           <div>
-            <h2 style={{
-              fontSize: "38px", fontWeight: 700, letterSpacing: "-0.04em",
+            <h2 className="text-[28px] md:text-[38px]" style={{
+              fontWeight: 700, letterSpacing: "-0.04em",
               color: "#F9FAFB", margin: 0, lineHeight: 1.1,
             }}>
               {t.headline[0]}
             </h2>
-            <h2 style={{
-              fontSize: "38px", fontWeight: 700, letterSpacing: "-0.04em",
+            <h2 className="text-[28px] md:text-[38px]" style={{
+              fontWeight: 700, letterSpacing: "-0.04em",
               color: "#B4F000", margin: 0, lineHeight: 1.1,
             }}>
               {t.headline[1]}

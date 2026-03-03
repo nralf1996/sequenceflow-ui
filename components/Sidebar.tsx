@@ -10,9 +10,9 @@ export function Sidebar() {
   const { t } = useTranslation();
 
   const navItems = [
-    { label: t.sidebar.dashboard,    href: "/" },
-    { label: t.sidebar.knowledge,    href: "/knowledge" },
-    { label: t.sidebar.agentConsole, href: "/agent-console" },
+    { label: t.sidebar.inbox,     href: "/inbox"     },
+    { label: t.sidebar.knowledge, href: "/knowledge" },
+    { label: t.sidebar.settings,  href: "/settings"  },
   ];
 
   return (
@@ -34,7 +34,7 @@ export function Sidebar() {
       {/* Nav items */}
       <nav className="flex flex-col gap-0.5 px-3 pt-3">
         {navItems.map(({ label, href }) => {
-          const isActive = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+          const isActive = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
@@ -50,8 +50,28 @@ export function Sidebar() {
             </Link>
           );
         })}
-      </nav>
 
+        {/* Analytics — disabled, coming soon */}
+        <div
+          className="px-3 py-2 rounded-lg text-[13px] flex items-center justify-between"
+          style={{ cursor: "not-allowed", opacity: 0.4 }}
+        >
+          <span className="text-[var(--muted)]">{t.sidebar.analytics}</span>
+          <span
+            style={{
+              fontSize: "10px",
+              fontWeight: 600,
+              background: "var(--border)",
+              color: "var(--muted)",
+              borderRadius: "4px",
+              padding: "1px 5px",
+              letterSpacing: "0.04em",
+            }}
+          >
+            SOON
+          </span>
+        </div>
+      </nav>
     </aside>
   );
 }

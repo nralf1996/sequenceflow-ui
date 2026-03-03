@@ -20,9 +20,10 @@ export const nl: Dictionary = {
   },
 
   sidebar: {
-    dashboard: "Dashboard",
+    inbox:     "Inbox",
     knowledge: "Kennisbank",
-    agentConsole: "Agent Console",
+    settings:  "Instellingen",
+    analytics: "Analytics",
   },
 
   dashboard: {

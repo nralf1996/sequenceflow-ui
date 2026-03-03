@@ -28,7 +28,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/knowledge");
+    router.push("/inbox");
   }
 
   return (

@@ -18,9 +18,10 @@ export const en = {
   },
 
   sidebar: {
-    dashboard: "Dashboard",
+    inbox:     "Inbox",
     knowledge: "Knowledge",
-    agentConsole: "Agent Console",
+    settings:  "Settings",
+    analytics: "Analytics",
   },
 
   dashboard: {

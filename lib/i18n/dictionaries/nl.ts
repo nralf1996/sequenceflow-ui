@@ -26,6 +26,60 @@ export const nl: Dictionary = {
     analytics: "Analytics",
   },
 
+  inbox: {
+    title:         "Inbox",
+    subtitle:      "AI-gegenereerde concepten ter beoordeling.",
+    colSubject:    "Onderwerp",
+    colCustomer:   "Klant",
+    colIntent:     "Intentie",
+    colConfidence: "Zekerheid",
+    colStatus:     "Status",
+  },
+
+  ticketDetail: {
+    backToInbox:      "← Inbox",
+    customerMessage:  "Klantbericht",
+    aiDraft:          "AI Concept",
+    decisionPanel:    "Beslispaneel",
+    intent:           "Intentie",
+    confidence:       "Zekerheid",
+    proposedDiscount: "Voorgestelde korting",
+    policyCheck:      "Beleidscheck",
+    escalationReason: "Escalatiereden",
+    approveAndSend:   "Goedkeuren & Versturen",
+    escalate:         "Escaleren",
+    none:             "Geen",
+  },
+
+  settings: {
+    title:    "Instellingen",
+    subtitle: "Configureer uw werkruimte, integraties en team.",
+
+    tabPolicy:       "Beleid",
+    tabIntegrations: "Integraties",
+    tabTeam:         "Team",
+
+    allowDiscount:     "Korting toestaan",
+    allowDiscountDesc: "Sta de AI toe kortingen voor te stellen in antwoorden.",
+    maxDiscount:       "Maximale korting (€)",
+
+    confidenceThreshold:     "Escalatiedrempel zekerheid",
+    confidenceThresholdDesc: "Tickets onder deze score worden gemarkeerd voor handmatige beoordeling.",
+
+    emailSignature: "E-mailhandtekening",
+    save:           "Opslaan",
+
+    gmailTitle: "Gmail",
+    gmailDesc:  "Koppel uw Gmail-inbox om support-e-mails automatisch te verwerken via SupportFlow.",
+    connectGmail: "Gmail koppelen",
+
+    teamMembers:   "Teamleden",
+    colName:       "Naam",
+    colEmail:      "E-mail",
+    colRole:       "Rol",
+    noTeamMembers: "Nog geen teamleden.",
+  },
+
   dashboard: {
     title: "Dashboard",
     subtitle: "Overzicht van uw SupportFlow OS.",

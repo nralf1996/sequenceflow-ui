@@ -24,6 +24,60 @@ export const en = {
     analytics: "Analytics",
   },
 
+  inbox: {
+    title:       "Inbox",
+    subtitle:    "AI-generated drafts pending your review.",
+    colSubject:  "Subject",
+    colCustomer: "Customer",
+    colIntent:   "Intent",
+    colConfidence: "Confidence",
+    colStatus:   "Status",
+  },
+
+  ticketDetail: {
+    backToInbox:      "← Inbox",
+    customerMessage:  "Customer Message",
+    aiDraft:          "AI Draft",
+    decisionPanel:    "Decision Panel",
+    intent:           "Intent",
+    confidence:       "Confidence",
+    proposedDiscount: "Proposed Discount",
+    policyCheck:      "Policy Check",
+    escalationReason: "Escalation Reason",
+    approveAndSend:   "Approve & Send",
+    escalate:         "Escalate",
+    none:             "None",
+  },
+
+  settings: {
+    title:    "Settings",
+    subtitle: "Configure your workspace, integrations, and team.",
+
+    tabPolicy:       "Policy",
+    tabIntegrations: "Integrations",
+    tabTeam:         "Team",
+
+    allowDiscount:     "Allow Discount",
+    allowDiscountDesc: "Permit the AI to propose discounts in replies.",
+    maxDiscount:       "Max Discount (€)",
+
+    confidenceThreshold:     "Confidence Escalation Threshold",
+    confidenceThresholdDesc: "Tickets below this score are flagged for human review.",
+
+    emailSignature: "Email Signature",
+    save:           "Save",
+
+    gmailTitle: "Gmail",
+    gmailDesc:  "Connect your Gmail inbox to process support emails automatically via SupportFlow.",
+    connectGmail: "Connect Gmail",
+
+    teamMembers:    "Team Members",
+    colName:        "Name",
+    colEmail:       "Email",
+    colRole:        "Role",
+    noTeamMembers:  "No team members yet.",
+  },
+
   dashboard: {
     title: "Dashboard",
     subtitle: "Overview of your SupportFlow OS.",

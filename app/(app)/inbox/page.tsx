@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 type TicketStatus = "Draft Ready" | "Needs Review" | "Escalated";
 type TicketIntent = "order_status" | "return_request" | "complaint" | "fallback";
@@ -48,15 +49,17 @@ function Badge({ bg, color, label }: { bg: string; color: string; label: string 
 }
 
 export default function InboxPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="mx-auto max-w-screen-xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
 
       <div className="mb-8">
         <h1 style={{ fontSize: "26px", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--text)", margin: 0 }}>
-          Inbox
+          {t.inbox.title}
         </h1>
         <p style={{ fontSize: "14px", color: "var(--muted)", marginTop: "6px" }}>
-          AI-generated drafts pending your review.
+          {t.inbox.subtitle}
         </p>
       </div>
 
@@ -72,7 +75,7 @@ export default function InboxPage() {
             gap: "16px",
           }}
         >
-          {["Subject", "Customer", "Intent", "Confidence", "Status"].map((h) => (
+          {[t.inbox.colSubject, t.inbox.colCustomer, t.inbox.colIntent, t.inbox.colConfidence, t.inbox.colStatus].map((h) => (
             <span key={h} style={{ fontSize: "11px", fontWeight: 600, color: "var(--muted)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               {h}
             </span>
@@ -80,8 +83,8 @@ export default function InboxPage() {
         </div>
 
         {MOCK_TICKETS.map((ticket, i) => {
-          const intent   = INTENT_COLORS[ticket.intent];
-          const status   = STATUS_COLORS[ticket.status];
+          const intent    = INTENT_COLORS[ticket.intent];
+          const status    = STATUS_COLORS[ticket.status];
           const confColor = ticket.confidence >= 0.8 ? "#B4F000" : ticket.confidence >= 0.6 ? "#fbbf24" : "#f87171";
           const confBg    = ticket.confidence >= 0.8 ? "rgba(180,240,0,0.12)" : ticket.confidence >= 0.6 ? "rgba(251,191,36,0.12)" : "rgba(239,68,68,0.12)";
           const isLast    = i === MOCK_TICKETS.length - 1;
@@ -121,7 +124,7 @@ export default function InboxPage() {
                 <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text)" }}>{ticket.subject}</span>
                 <span style={{ fontSize: "13px", color: "var(--muted)" }}>{ticket.customer}</span>
                 <Badge bg={intent.bg} color={intent.color} label={ticket.intent.replace("_", " ")} />
-                <Badge bg={confBg}   color={confColor}    label={`${Math.round(ticket.confidence * 100)}%`} />
+                <Badge bg={confBg}    color={confColor}    label={`${Math.round(ticket.confidence * 100)}%`} />
                 <Badge bg={status.bg} color={status.color} label={ticket.status} />
               </div>
             </Link>

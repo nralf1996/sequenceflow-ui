@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabaseClient";
 
@@ -150,9 +150,23 @@ function MockTicket({ t }: { t: typeof T.nl }) {
   );
 }
 
+const STORAGE_KEY = "sf_lang";
+
 export default function LoginPage() {
-  const [lang, setLang] = useState<Lang>("nl");
+  const [lang, setLangState] = useState<Lang>("nl");
   const t = T[lang];
+
+  // Read persisted preference on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "nl" || stored === "en") setLangState(stored);
+  }, []);
+
+  // Write to localStorage so LanguageProvider picks it up after login
+  function setLang(l: Lang) {
+    setLangState(l);
+    localStorage.setItem(STORAGE_KEY, l);
+  }
 
   async function handleGoogleLogin() {
     const supabase = createClient();
@@ -234,12 +248,11 @@ export default function LoginPage() {
 
       {/* ── Right panel ── */}
       <div
-        className="hidden md:flex md:w-[60%] md:flex-col md:items-center md:justify-center"
+        className="hidden md:flex md:w-[60%] md:items-center md:justify-center"
         style={{
           background: "linear-gradient(145deg, #0d1117 0%, #0f172a 45%, #1a1a2e 100%)",
           position: "relative",
           overflow: "hidden",
-          padding: "60px 48px",
           borderRadius: "20px 0 0 20px",
         }}
       >
@@ -259,11 +272,11 @@ export default function LoginPage() {
           pointerEvents: "none",
         }} />
 
-        {/* Content */}
-        <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "420px" }}>
+        {/* Content — properly padded, never touches edges */}
+        <div className="relative z-10 mx-auto flex w-full max-w-xl flex-col gap-8 px-10 py-16 lg:px-16">
 
           {/* Headline */}
-          <div style={{ marginBottom: "12px" }}>
+          <div>
             <h2 style={{
               fontSize: "38px", fontWeight: 700, letterSpacing: "-0.04em",
               color: "#F9FAFB", margin: 0, lineHeight: 1.1,
@@ -281,7 +294,7 @@ export default function LoginPage() {
           {/* Subheadline */}
           <p style={{
             fontSize: "14px", color: "rgba(229,231,235,0.45)",
-            lineHeight: 1.6, margin: "0 0 32px", maxWidth: "340px",
+            lineHeight: 1.6, margin: 0, maxWidth: "340px",
           }}>
             {t.sub}
           </p>

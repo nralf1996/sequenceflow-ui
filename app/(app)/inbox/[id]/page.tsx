@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 type TicketDetail = {
   subject: string;
@@ -104,6 +105,7 @@ export default function TicketDetailPage({
   const { id } = use(params);
   const ticket = MOCK[id] ?? MOCK["1"];
   const [draft, setDraft] = useState(ticket.aiDraft);
+  const { t } = useTranslation();
 
   const confColor = ticket.confidence >= 0.8 ? "#B4F000" : ticket.confidence >= 0.6 ? "#fbbf24" : "#f87171";
 
@@ -113,7 +115,7 @@ export default function TicketDetailPage({
       {/* Breadcrumb + title */}
       <div>
         <Link href="/inbox" style={{ fontSize: "13px", color: "var(--muted)", textDecoration: "none" }}>
-          ← Inbox
+          {t.ticketDetail.backToInbox}
         </Link>
         <h1 style={{ fontSize: "22px", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--text)", margin: "8px 0 4px" }}>
           {ticket.subject}
@@ -127,7 +129,7 @@ export default function TicketDetailPage({
         {/* Customer message */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px" }}>
           <p style={{ fontSize: "11px", fontWeight: 600, color: "var(--muted)", letterSpacing: "0.05em", textTransform: "uppercase", margin: "0 0 14px" }}>
-            Customer Message
+            {t.ticketDetail.customerMessage}
           </p>
           <p style={{ fontSize: "13px", color: "var(--text)", lineHeight: 1.65, whiteSpace: "pre-wrap", margin: 0 }}>
             {ticket.customerMessage}
@@ -137,40 +139,33 @@ export default function TicketDetailPage({
         {/* AI draft */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
           <p style={{ fontSize: "11px", fontWeight: 600, color: "var(--muted)", letterSpacing: "0.05em", textTransform: "uppercase", margin: 0 }}>
-            AI Draft
+            {t.ticketDetail.aiDraft}
           </p>
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={14}
             style={{
-              width: "100%",
-              resize: "vertical",
-              padding: "12px",
-              borderRadius: "8px",
-              border: "1px solid var(--border)",
-              background: "var(--bg)",
-              color: "var(--text)",
-              fontSize: "13px",
-              lineHeight: 1.65,
-              fontFamily: "inherit",
-              outline: "none",
-              boxSizing: "border-box",
+              width: "100%", resize: "vertical", padding: "12px",
+              borderRadius: "8px", border: "1px solid var(--border)",
+              background: "var(--bg)", color: "var(--text)",
+              fontSize: "13px", lineHeight: 1.65,
+              fontFamily: "inherit", outline: "none", boxSizing: "border-box",
             }}
           />
         </div>
 
-        {/* Decision panel — renders after draft on mobile */}
+        {/* Decision panel */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px", display: "flex", flexDirection: "column", gap: "18px" }}>
           <p style={{ fontSize: "11px", fontWeight: 600, color: "var(--muted)", letterSpacing: "0.05em", textTransform: "uppercase", margin: 0 }}>
-            Decision Panel
+            {t.ticketDetail.decisionPanel}
           </p>
-          <Field label="Intent"            value={ticket.intent} />
-          <Field label="Confidence"        value={`${Math.round(ticket.confidence * 100)}%`} highlight={confColor} />
-          <Field label="Proposed Discount" value={ticket.discount ?? "None"} />
-          <Field label="Policy Check"      value={ticket.policyCheck} />
+          <Field label={t.ticketDetail.intent}           value={ticket.intent} />
+          <Field label={t.ticketDetail.confidence}       value={`${Math.round(ticket.confidence * 100)}%`} highlight={confColor} />
+          <Field label={t.ticketDetail.proposedDiscount} value={ticket.discount ?? t.ticketDetail.none} />
+          <Field label={t.ticketDetail.policyCheck}      value={ticket.policyCheck} />
           {ticket.escalationReason && (
-            <Field label="Escalation Reason" value={ticket.escalationReason} highlight="#f87171" />
+            <Field label={t.ticketDetail.escalationReason} value={ticket.escalationReason} highlight="#f87171" />
           )}
         </div>
       </div>
@@ -181,14 +176,14 @@ export default function TicketDetailPage({
           padding: "10px 28px", borderRadius: "8px", border: "none",
           background: "#B4F000", color: "#0B1220", fontSize: "13px", fontWeight: 600, cursor: "pointer",
         }}>
-          Approve &amp; Send
+          {t.ticketDetail.approveAndSend}
         </button>
         <button style={{
           padding: "10px 28px", borderRadius: "8px",
           border: "1px solid rgba(248,113,113,0.4)", background: "rgba(239,68,68,0.08)",
           color: "#f87171", fontSize: "13px", fontWeight: 600, cursor: "pointer",
         }}>
-          Escalate
+          {t.ticketDetail.escalate}
         </button>
       </div>
     </div>

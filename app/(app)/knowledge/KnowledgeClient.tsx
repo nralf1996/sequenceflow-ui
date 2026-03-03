@@ -81,7 +81,7 @@ function UploadCard({
     fd.append("title", title.trim() || file.name);
 
     try {
-      const res = await fetch("/api/knowledge/upload", { method: "POST", body: fd });
+      const res = await fetch("/api/knowledge/upload", { method: "POST", body: fd, credentials: "include" });
 
       // Safely parse JSON — server might return HTML on unexpected errors
       let json: any = {};

@@ -1,7 +1,47 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabaseClient";
+
+type Lang = "nl" | "en";
+
+const T = {
+  nl: {
+    title: "Inloggen op je account",
+    subtitle: "AI Support Operating Systeem",
+    button: "Doorgaan met Google",
+    footer: "Veilige authenticatie via Google",
+    headline: ["Elk ticket.", "Afgehandeld."],
+    sub: "Van inbox naar antwoord — geclassificeerd, geconcept en beleidsgetoetst in seconden.",
+    ticketLabel: "Inkomend ticket",
+    customer: "Jan de Vries",
+    subject: "Bestelling #4521 niet ontvangen",
+    intent: "bestelstatus",
+    conf: "91%",
+    status: "Concept klaar",
+    draftLabel: "AI Concept",
+    draft: "Beste Jan, hartelijk dank voor uw bericht. We begrijpen dat u bezorgd bent over uw bestelling #4521. We hebben dit intern gecheckt en uw pakket wordt vandaag nog verzonden.",
+    chips: ["Intentherkenning", "Auto-concept replies", "Beleidsbewust"],
+  },
+  en: {
+    title: "Log in to your account",
+    subtitle: "AI Support Operating System",
+    button: "Continue with Google",
+    footer: "Secure authentication via Google",
+    headline: ["Every ticket.", "Handled."],
+    sub: "From inbox to reply — classified, drafted and policy-checked in seconds.",
+    ticketLabel: "Incoming ticket",
+    customer: "Jan de Vries",
+    subject: "Order #4521 has not arrived",
+    intent: "order status",
+    conf: "91%",
+    status: "Draft Ready",
+    draftLabel: "AI Draft",
+    draft: "Dear Jan, thank you for your message. We understand you are concerned about order #4521. We have checked internally and your package will be shipped today.",
+    chips: ["Intent classification", "Auto-draft replies", "Policy-aware"],
+  },
+};
 
 function GoogleIcon() {
   return (
@@ -14,7 +54,106 @@ function GoogleIcon() {
   );
 }
 
+function LangSwitch({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
+  return (
+    <div style={{
+      display: "flex",
+      gap: "2px",
+      background: "#F3F4F6",
+      borderRadius: "8px",
+      padding: "3px",
+    }}>
+      {(["nl", "en"] as Lang[]).map((l) => (
+        <button
+          key={l}
+          onClick={() => setLang(l)}
+          style={{
+            padding: "4px 10px",
+            borderRadius: "5px",
+            border: "none",
+            background: lang === l ? "#0B1220" : "transparent",
+            color: lang === l ? "#F9FAFB" : "#9CA3AF",
+            fontSize: "11px",
+            fontWeight: 700,
+            cursor: "pointer",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            transition: "all 0.12s ease",
+          }}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MockTicket({ t }: { t: typeof T.nl }) {
+  return (
+    <div style={{
+      width: "100%",
+      maxWidth: "400px",
+      background: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: "14px",
+      padding: "20px 22px",
+    }}>
+      {/* Card header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+        <span style={{
+          fontSize: "10px", fontWeight: 700, color: "rgba(255,255,255,0.28)",
+          letterSpacing: "0.08em", textTransform: "uppercase",
+        }}>
+          {t.ticketLabel}
+        </span>
+        <span style={{
+          fontSize: "11px", fontWeight: 600, padding: "2px 9px",
+          borderRadius: "6px", background: "rgba(180,240,0,0.14)",
+          color: "#B4F000", letterSpacing: "0.02em",
+        }}>
+          {t.status}
+        </span>
+      </div>
+
+      {/* Customer + subject */}
+      <p style={{ fontSize: "13px", fontWeight: 600, color: "#E5E7EB", margin: "0 0 3px" }}>
+        {t.customer}
+      </p>
+      <p style={{ fontSize: "12px", color: "rgba(229,231,235,0.4)", margin: "0 0 12px" }}>
+        {t.subject}
+      </p>
+
+      {/* Badges */}
+      <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
+        <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "5px", background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>
+          {t.intent}
+        </span>
+        <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "5px", background: "rgba(180,240,0,0.12)", color: "#B4F000" }}>
+          {t.conf}
+        </span>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", marginBottom: "14px" }} />
+
+      {/* AI Draft */}
+      <p style={{
+        fontSize: "10px", fontWeight: 700, color: "rgba(255,255,255,0.28)",
+        letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 8px",
+      }}>
+        {t.draftLabel}
+      </p>
+      <p style={{ fontSize: "13px", color: "rgba(229,231,235,0.55)", lineHeight: 1.65, margin: 0 }}>
+        {t.draft}
+      </p>
+    </div>
+  );
+}
+
 export default function LoginPage() {
+  const [lang, setLang] = useState<Lang>("nl");
+  const t = T[lang];
+
   async function handleGoogleLogin() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -28,44 +167,38 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
 
-      {/* ── Left panel (login) ── */}
-      <div className="flex w-full flex-col items-center justify-center bg-white px-8 py-16 md:w-[40%] md:px-16">
-        <div className="w-full max-w-[320px]">
+      {/* ── Left panel ── */}
+      <div className="relative flex w-full flex-col bg-white px-8 py-12 md:w-[40%] md:px-14">
 
-          {/* Logo */}
-          <div className="mb-10">
-            <Image
-              src="/login/loginlogo.png"
-              alt="SupportFlow"
-              width={140}
-              height={40}
-              priority
-              style={{ height: "auto" }}
-            />
-          </div>
+        {/* Top bar: logo left, lang switcher right */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "auto" }}>
+          <Image
+            src="/login/loginlogo.png"
+            alt="SequenceFlow"
+            width={180}
+            height={52}
+            priority
+            style={{ height: "auto" }}
+          />
+          <LangSwitch lang={lang} setLang={setLang} />
+        </div>
+
+        {/* Centered form */}
+        <div className="flex flex-1 flex-col items-center justify-center">
+        <div className="w-full max-w-[300px]">
 
           {/* Heading */}
-          <h1
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              letterSpacing: "-0.025em",
-              color: "#0B1220",
-              margin: "0 0 6px",
-              lineHeight: 1.2,
-            }}
-          >
-            Log in to your account
+          <h1 style={{
+            fontSize: "22px", fontWeight: 600, letterSpacing: "-0.025em",
+            color: "#0B1220", margin: "0 0 6px", lineHeight: 1.2,
+          }}>
+            {t.title}
           </h1>
-          <p
-            style={{
-              fontSize: "14px",
-              color: "#9CA3AF",
-              margin: "0 0 36px",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            AI Support Operating System
+          <p style={{
+            fontSize: "14px", color: "#9CA3AF",
+            margin: "0 0 36px", letterSpacing: "-0.01em",
+          }}>
+            {t.subtitle}
           </p>
 
           {/* Google button */}
@@ -74,87 +207,104 @@ export default function LoginPage() {
             onMouseEnter={(e) => { e.currentTarget.style.background = "#1F2937"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "#0B1220"; }}
             style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "10px",
-              padding: "13px 20px",
-              borderRadius: "10px",
-              border: "none",
-              background: "#0B1220",
-              color: "#F9FAFB",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: "pointer",
-              letterSpacing: "-0.01em",
+              width: "100%", display: "flex", alignItems: "center",
+              justifyContent: "center", gap: "10px", padding: "13px 20px",
+              borderRadius: "10px", border: "none", background: "#0B1220",
+              color: "#F9FAFB", fontSize: "14px", fontWeight: 600,
+              cursor: "pointer", letterSpacing: "-0.01em",
               transition: "background 0.12s ease",
             }}
           >
             <GoogleIcon />
-            Continue with Google
+            {t.button}
           </button>
 
           {/* Footer note */}
-          <p
-            style={{
-              fontSize: "11px",
-              color: "#D1D5DB",
-              marginTop: "16px",
-              textAlign: "center",
-              letterSpacing: "0.01em",
-            }}
-          >
-            Secure authentication via Google
+          <p style={{
+            fontSize: "11px", color: "#D1D5DB",
+            marginTop: "16px", textAlign: "center", letterSpacing: "0.01em",
+          }}>
+            {t.footer}
           </p>
 
         </div>
+        </div>{/* end centered form */}
+
       </div>
 
-      {/* ── Right panel (visual) ── */}
+      {/* ── Right panel ── */}
       <div
-        className="hidden md:flex md:w-[60%]"
+        className="hidden md:flex md:w-[60%] md:flex-col md:items-center md:justify-center"
         style={{
-          background: "linear-gradient(135deg, #0B1220 0%, #0f172a 40%, #1e1b4b 100%)",
+          background: "linear-gradient(145deg, #0d1117 0%, #0f172a 45%, #1a1a2e 100%)",
           position: "relative",
           overflow: "hidden",
+          padding: "60px 48px",
+          borderRadius: "20px 0 0 20px",
         }}
       >
-        {/* Subtle inner rounded corner toward the left side */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "20px 0 0 20px",
-            background: "linear-gradient(135deg, #0d1529 0%, #111827 35%, #1e1b4b 100%)",
-          }}
-        />
+        {/* Indigo glow top-right */}
+        <div style={{
+          position: "absolute", top: "-15%", right: "-10%",
+          width: "60%", paddingBottom: "60%", borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 65%)",
+          pointerEvents: "none",
+        }} />
 
-        {/* Soft radial glow — top right */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-10%",
-            right: "-5%",
-            width: "55%",
-            paddingBottom: "55%",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)",
-          }}
-        />
+        {/* Lime glow bottom-left */}
+        <div style={{
+          position: "absolute", bottom: "-20%", left: "0%",
+          width: "50%", paddingBottom: "50%", borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(180,240,0,0.06) 0%, transparent 65%)",
+          pointerEvents: "none",
+        }} />
 
-        {/* Soft radial glow — bottom left */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-15%",
-            left: "5%",
-            width: "45%",
-            paddingBottom: "45%",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(180,240,0,0.07) 0%, transparent 70%)",
-          }}
-        />
+        {/* Content */}
+        <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "420px" }}>
+
+          {/* Headline */}
+          <div style={{ marginBottom: "12px" }}>
+            <h2 style={{
+              fontSize: "38px", fontWeight: 700, letterSpacing: "-0.04em",
+              color: "#F9FAFB", margin: 0, lineHeight: 1.1,
+            }}>
+              {t.headline[0]}
+            </h2>
+            <h2 style={{
+              fontSize: "38px", fontWeight: 700, letterSpacing: "-0.04em",
+              color: "#B4F000", margin: 0, lineHeight: 1.1,
+            }}>
+              {t.headline[1]}
+            </h2>
+          </div>
+
+          {/* Subheadline */}
+          <p style={{
+            fontSize: "14px", color: "rgba(229,231,235,0.45)",
+            lineHeight: 1.6, margin: "0 0 32px", maxWidth: "340px",
+          }}>
+            {t.sub}
+          </p>
+
+          {/* Mock ticket card */}
+          <MockTicket t={t} />
+
+          {/* Feature chips */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "20px" }}>
+            {t.chips.map((chip) => (
+              <span key={chip} style={{
+                fontSize: "11px", fontWeight: 500,
+                padding: "5px 12px", borderRadius: "20px",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "rgba(229,231,235,0.45)",
+                letterSpacing: "0.01em",
+              }}>
+                {chip}
+              </span>
+            ))}
+          </div>
+
+        </div>
       </div>
 
     </div>

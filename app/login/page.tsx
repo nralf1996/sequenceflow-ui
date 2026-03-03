@@ -1,6 +1,93 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabaseClient";
+
+const CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノ01011010110100101".split("");
+const FONT_SIZE = 14;
+const FPS = 20;
+
+function MatrixRain() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let drops: number[] = [];
+    let rafId: number;
+    let lastTime = 0;
+    const interval = 1000 / FPS;
+
+    const init = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const cols = Math.floor(canvas.width / FONT_SIZE);
+      drops = Array.from({ length: cols }, () => Math.random() * -120);
+    };
+
+    const draw = () => {
+      // Dark semi-transparent overlay creates the fading trail
+      ctx.fillStyle = "rgba(11, 18, 32, 0.08)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = `${FONT_SIZE}px "Courier New", monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        if (drops[i] < 0) {
+          drops[i] += 1;
+          continue;
+        }
+
+        const char = CHARS[Math.floor(Math.random() * CHARS.length)];
+        const x = i * FONT_SIZE;
+        const y = drops[i] * FONT_SIZE;
+
+        // Head character: bright lime
+        ctx.fillStyle = "rgba(180, 240, 0, 0.92)";
+        ctx.fillText(char, x, y);
+
+        if (y > canvas.height && Math.random() > 0.974) {
+          drops[i] = Math.random() * -80;
+        } else {
+          drops[i] += 1;
+        }
+      }
+    };
+
+    const loop = (timestamp: number) => {
+      if (timestamp - lastTime >= interval) {
+        draw();
+        lastTime = timestamp;
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+
+    init();
+    window.addEventListener("resize", init);
+    rafId = requestAnimationFrame(loop);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", init);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        opacity: 0.38,
+        zIndex: 0,
+      }}
+    />
+  );
+}
 
 function GoogleIcon() {
   return (
@@ -27,21 +114,33 @@ export default function LoginPage() {
   return (
     <div
       style={{
+        position: "relative",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: [
-          "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(180,240,0,0.09) 0%, transparent 65%)",
-          "#0B1220",
-        ].join(", "),
+        background: "#0B1220",
         padding: "24px",
+        overflow: "hidden",
       }}
     >
-      <div style={{ width: "100%", maxWidth: "340px", textAlign: "center" }}>
+      <MatrixRain />
 
-        {/* Wordmark */}
+      {/* Vignette: fades the rain toward the center so text stays readable */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(11,18,32,0.82) 0%, transparent 100%)",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
+      {/* Content */}
+      <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: "340px", textAlign: "center" }}>
+
         <h1
           style={{
             fontSize: "40px",
@@ -55,7 +154,6 @@ export default function LoginPage() {
           SupportFlow
         </h1>
 
-        {/* Subtitle */}
         <p
           style={{
             fontSize: "14px",
@@ -67,15 +165,10 @@ export default function LoginPage() {
           AI Support Operating System
         </p>
 
-        {/* Google button */}
         <button
           onClick={handleGoogleLogin}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#F3F4F6";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#FFFFFF";
-          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#F3F4F6"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFFFF"; }}
           style={{
             width: "100%",
             display: "flex",
@@ -99,7 +192,6 @@ export default function LoginPage() {
           Continue with Google
         </button>
 
-        {/* Footer note */}
         <p
           style={{
             fontSize: "11px",

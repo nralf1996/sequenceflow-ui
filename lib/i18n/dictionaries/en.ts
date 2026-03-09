@@ -84,6 +84,9 @@ export const en = {
     gmailDesc:  "Connect your Gmail inbox to process support emails automatically via SupportFlow.",
     connectGmail: "Connect Gmail",
 
+    bolTitle: "Bol.com",
+    bolDesc:  "Automatically sync Bol.com seller messages and order tickets into your SupportFlow inbox.",
+
     teamMembers:    "Team Members",
     colName:        "Name",
     colEmail:       "Email",

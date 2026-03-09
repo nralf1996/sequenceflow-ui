@@ -159,6 +159,8 @@ export default function SettingsPage() {
       {/* ── Integrations tab ── */}
       {activeTab === "integrations" && (
         <div className="flex flex-col gap-3">
+
+          {/* Gmail */}
           <div
             className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px 24px" }}
@@ -183,6 +185,42 @@ export default function SettingsPage() {
               {t.settings.connectGmail}
             </button>
           </div>
+
+          {/* Bol.com */}
+          <div
+            className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px 24px", opacity: 0.6 }}
+          >
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+                <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                  {t.settings.bolTitle}
+                </p>
+                <span style={{
+                  fontSize: "10px", fontWeight: 700,
+                  background: "var(--border)", color: "var(--muted)",
+                  borderRadius: "4px", padding: "1px 5px", letterSpacing: "0.04em",
+                }}>
+                  SOON
+                </span>
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--muted)", margin: 0 }}>
+                {t.settings.bolDesc}
+              </p>
+            </div>
+            <button
+              disabled
+              style={{
+                flexShrink: 0, padding: "8px 18px", borderRadius: "8px",
+                border: "1px solid var(--border)", background: "transparent",
+                color: "var(--muted)", fontSize: "13px", fontWeight: 500,
+                cursor: "not-allowed", opacity: 0.5,
+              }}
+            >
+              Connect
+            </button>
+          </div>
+
         </div>
       )}
 

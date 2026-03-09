@@ -86,6 +86,9 @@ export const nl: Dictionary = {
     gmailDesc:  "Koppel uw Gmail-inbox om support-e-mails automatisch te verwerken via SupportFlow.",
     connectGmail: "Gmail koppelen",
 
+    bolTitle: "Bol.com",
+    bolDesc:  "Synchroniseer automatisch Bol.com-verkopersberichten en besteltickets naar uw SupportFlow-inbox.",
+
     teamMembers:   "Teamleden",
     colName:       "Naam",
     colEmail:      "E-mail",

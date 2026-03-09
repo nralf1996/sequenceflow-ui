@@ -82,7 +82,6 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Fetch account email from Google userinfo ───────────────────────────────
-  let accountEmail: string;
   try {
     const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: { Authorization: `Bearer ${accessToken}` },

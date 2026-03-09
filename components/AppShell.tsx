@@ -1,11 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { createClient } from "@/lib/supabaseClient";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      const name =
+        data.user.user_metadata?.full_name?.split(" ")[0] ??
+        data.user.user_metadata?.name?.split(" ")[0] ??
+        data.user.email?.split("@")[0] ??
+        null;
+      setDisplayName(name);
+    });
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   return (
     <div className="flex h-screen overflow-hidden transition-colors duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
@@ -24,11 +49,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
         {/* Top bar */}
-        <header className="flex h-11 flex-shrink-0 items-center border-b border-[var(--border)] bg-[var(--bg)] px-4 transition-colors duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
+        <header className="flex h-11 flex-shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--bg)] px-4 transition-colors duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
 
           {/* Hamburger — mobile only */}
           <button
-            className="mr-3 rounded-md p-1 text-[var(--muted)] hover:bg-[var(--surface)] lg:hidden"
+            className="mr-1 rounded-md p-1 text-[var(--muted)] hover:bg-[var(--surface)] lg:hidden"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open navigation"
           >
@@ -39,8 +64,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
 
-          <div className="ml-auto">
+          {/* Right-side controls */}
+          <div className="ml-auto flex items-center gap-4">
+
+            {/* Welcome message */}
+            {displayName && (
+              <span style={{ fontSize: "13px", color: "var(--muted)" }}>
+                {t.sidebar.welcome}, <span style={{ fontWeight: 500, color: "var(--text)" }}>{displayName}</span>
+              </span>
+            )}
+
             <LanguageSwitcher />
+
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              style={{
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "var(--muted)",
+                background: "transparent",
+                border: "1px solid var(--border)",
+                borderRadius: "6px",
+                padding: "3px 10px",
+                cursor: "pointer",
+                transition: "color 0.12s, border-color 0.12s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text)";
+                e.currentTarget.style.borderColor = "var(--text)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--muted)";
+                e.currentTarget.style.borderColor = "var(--border)";
+              }}
+            >
+              {t.sidebar.logout}
+            </button>
           </div>
         </header>
 

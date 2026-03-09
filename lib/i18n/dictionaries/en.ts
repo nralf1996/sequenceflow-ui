@@ -22,6 +22,8 @@ export const en = {
     knowledge: "Knowledge",
     settings:  "Settings",
     analytics: "Analytics",
+    welcome:   "Welcome",
+    logout:    "Log out",
   },
 
   inbox: {

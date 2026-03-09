@@ -24,6 +24,8 @@ export const nl: Dictionary = {
     knowledge: "Kennisbank",
     settings:  "Instellingen",
     analytics: "Analytics",
+    welcome:   "Welkom",
+    logout:    "Uitloggen",
   },
 
   inbox: {

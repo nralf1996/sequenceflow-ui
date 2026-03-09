@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("tenant_integrations")
-    .select("provider, account_email, status, token_expires_at, expires_at")
+    .select("provider, account_email, status, expires_at")
     .eq("tenant_id", tenantId);
 
   if (error) {

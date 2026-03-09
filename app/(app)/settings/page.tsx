@@ -173,17 +173,17 @@ export default function SettingsPage() {
                 {t.settings.gmailDesc}
               </p>
             </div>
-            <button
-              disabled
+            <a
+              href="/api/integrations/google/start"
               style={{
                 flexShrink: 0, padding: "8px 18px", borderRadius: "8px",
                 border: "1px solid var(--border)", background: "transparent",
-                color: "var(--muted)", fontSize: "13px", fontWeight: 500,
-                cursor: "not-allowed", opacity: 0.5,
+                color: "var(--text)", fontSize: "13px", fontWeight: 500,
+                cursor: "pointer", textDecoration: "none", display: "inline-block",
               }}
             >
               {t.settings.connectGmail}
-            </button>
+            </a>
           </div>
 
           {/* Bol.com */}

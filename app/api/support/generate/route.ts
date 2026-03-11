@@ -116,12 +116,12 @@ export async function POST(req: Request) {
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
 
-  // ── 1. Resolve tenant (cookie session or Bearer JWT) ──────────────────────
-  let tenantId: string;
+  // ── 1. Authenticate caller (cookie session or Bearer JWT) ─────────────────
   let callerRole: string;
   let userId: string;
+  let authTenantId: string;
   try {
-    ({ tenantId, role: callerRole, userId } = await getTenantId(req));
+    ({ tenantId: authTenantId, role: callerRole, userId } = await getTenantId(req));
   } catch (err: any) {
     const status = err.message === "Not authenticated" ? 401 : 403;
     return NextResponse.json({ error: err.message }, { status });
@@ -148,6 +148,20 @@ export async function POST(req: Request) {
   console.log(JSON.stringify(data, null, 2));
   console.log("=== END REQUEST BODY ===");
 
+  // ── 2b. Resolve tenant — body takes priority over auth-derived tenant ──────
+  // n8n sends the actual tenant_id being processed in the request body.
+  // The auth JWT belongs to the machine user (n8n@sequenceflow.local) whose
+  // own tenant_id is irrelevant here.
+  const tenantId: string = data.tenant_id
+    ? String(data.tenant_id).trim()
+    : authTenantId;
+
+  if (!tenantId) {
+    return NextResponse.json({ error: "tenant_id missing from request" }, { status: 400 });
+  }
+
+  console.log(`[generate] resolved tenantId=${tenantId} (source=${data.tenant_id ? "body" : "auth"})`);
+
   const supabase = getSupabaseClient();
   const source   = String(data.source ?? "api").trim();
 
@@ -165,8 +179,20 @@ export async function POST(req: Request) {
     );
     const customerName: string = data.customer?.name || from || "";
 
-    // ── 4. Load tenant config (throws if tenant unknown) ─────────────────────
-    const config = await loadAgentConfig(tenantId);
+    // ── 4. Load tenant config (fallback if not configured yet) ───────────────
+    let config: Awaited<ReturnType<typeof loadAgentConfig>>;
+    try {
+      config = await loadAgentConfig(tenantId);
+    } catch {
+      console.warn(`[generate] No agent config found for tenant "${tenantId}", using defaults`);
+      config = {
+        empathyEnabled:    true,
+        allowDiscount:     false,
+        maxDiscountAmount: 0,
+        signature:         "",
+        languageDefault:   "nl",
+      };
+    }
     console.log("CONFIG USED IN GENERATE:", JSON.stringify({ tenantId, ...config }));
 
     if (!subject && !ticketBody) {

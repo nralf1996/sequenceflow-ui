@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 const TOKEN_URL    = "https://oauth2.googleapis.com/token";
-const REDIRECT_URI = "https://emailreply.sequenceflow.io/api/integrations/google/callback";
+const REDIRECT_URI = "https://supportflow.sequenceflow.io/api/integrations/google/callback";
 
 // ─── GET /api/integrations/google/callback ─────────────────────────────────
 // Receives the OAuth callback from Google, exchanges the code for tokens,

@@ -125,5 +125,5 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Success ───────────────────────────────────────────────────────────────
-  return NextResponse.redirect(new URL("/settings?tab=integrations&connected=gmail", req.nextUrl.origin));
+  return NextResponse.redirect(new URL("/inbox", req.nextUrl.origin));
 }

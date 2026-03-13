@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
-    return NextResponse.redirect(`${origin}/login`);
+    return NextResponse.redirect(`https://supportflow.sequenceflow.io/login`);
   }
 
   const next = searchParams.get("next");
   const redirectTo = next && next.startsWith("/") ? next : "/inbox";
-  return NextResponse.redirect(`${origin}${redirectTo}`);
+  return NextResponse.redirect(`https://supportflow.sequenceflow.io${redirectTo}`);
 }

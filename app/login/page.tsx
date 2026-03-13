@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabaseClient";
 
@@ -152,13 +153,11 @@ function MockTicket({ t }: { t: typeof T.nl }) {
 
 const STORAGE_KEY = "sf_lang";
 
-export default function LoginPage() {
+function LoginContent() {
   const [lang, setLangState] = useState<Lang>("nl");
   const t = T[lang];
-
-  const next = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("next") || "/inbox"
-    : "/inbox";
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/inbox";
 
   // Read persisted preference on mount
   useEffect(() => {
@@ -324,5 +323,13 @@ export default function LoginPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

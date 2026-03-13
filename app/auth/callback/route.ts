@@ -39,5 +39,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login`);
   }
 
-  return NextResponse.redirect(`${origin}/inbox`);
+  const next = searchParams.get("next");
+  const redirectTo = next && next.startsWith("/") ? next : "/inbox";
+  return NextResponse.redirect(`${origin}${redirectTo}`);
 }

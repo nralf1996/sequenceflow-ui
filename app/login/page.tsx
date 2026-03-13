@@ -156,6 +156,10 @@ export default function LoginPage() {
   const [lang, setLangState] = useState<Lang>("nl");
   const t = T[lang];
 
+  const next = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("next") || "/inbox"
+    : "/inbox";
+
   // Read persisted preference on mount
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -173,7 +177,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
   }

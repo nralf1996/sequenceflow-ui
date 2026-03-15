@@ -73,7 +73,7 @@ async function upsertTicket(
 }
 
 async function insertSupportEvent(
-  supabase: ReturnType<typeof getSupabaseClient>,
+  supabase: ReturnType<typeof getSupabaseAdmin>,
   event: SupportEventPayload
 ): Promise<void> {
   const { error } = await supabase.from("support_events").insert({
@@ -265,7 +265,7 @@ export async function POST(req: Request) {
         `[generate] tenant=${tenantId} route=AUTO_REPLY confidence=0.95`
       );
 
-      await insertSupportEvent(supabase, {
+      await insertSupportEvent(supabaseAdmin, {
         tenantId,
         userId,
         requestId,
@@ -428,7 +428,7 @@ export async function POST(req: Request) {
       `[generate] tenant=${tenantId} route=${routing} confidence=${finalConfidence.toFixed(2)} hasKnowledge=${usedKnowledge}`
     );
 
-    await insertSupportEvent(supabase, {
+    await insertSupportEvent(supabaseAdmin, {
       tenantId,
       userId,
       requestId,
@@ -473,7 +473,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     const errorMessage = String(err?.message ?? err);
 
-    await insertSupportEvent(supabase, {
+    await insertSupportEvent(supabaseAdmin, {
       tenantId,
       userId,
       requestId,

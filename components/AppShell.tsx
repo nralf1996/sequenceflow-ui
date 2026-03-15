@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { createClient } from "@/lib/supabaseClient";
@@ -11,7 +10,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const { t } = useTranslation();
-  const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
@@ -29,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   }
 
   return (

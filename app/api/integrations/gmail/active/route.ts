@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     .from("tenant_integrations")
     .select("tenant_id, account_email, access_token, refresh_token, expires_at")
     .eq("provider", "gmail")
-    .eq("status", "connected");
+    .in("status", ["connected", "active"]);
 
   if (error) {
     console.error("[gmail/active] DB fetch error:", error);

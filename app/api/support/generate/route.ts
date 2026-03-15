@@ -219,7 +219,7 @@ export async function POST(req: Request) {
         `Mocht u nog vragen hebben, staat ons team voor u klaar.`;
 
       if (config?.signature?.trim()) {
-        replyBody = replyBody + "\n\n" + config.signature.trim();
+        replyBody = replyBody + "\n\n--\n" + config.signature.trim();
       }
 
       console.log(
@@ -362,7 +362,7 @@ export async function POST(req: Request) {
     // Append signature server-side (never in LLM prompt)
     if (config?.signature?.trim()) {
       validated.draft.body =
-        validated.draft.body.trim() + "\n\n" + config.signature.trim();
+        validated.draft.body.trim() + "\n\n--\n" + config.signature.trim();
     }
 
     // Filter disallowed actions

@@ -27,7 +27,7 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-type IntegrationInfo = { connected: boolean; account_email: string | null; status: string };
+type IntegrationInfo = { connected: boolean; account_email: string | null; status: string | null };
 
 function SettingsContent() {
   const { t } = useTranslation();
@@ -217,43 +217,106 @@ function SettingsContent() {
           {/* Gmail */}
           {(() => {
             const gmail = integrations["gmail"];
+            const gmailStatus = gmail?.status ?? null;
+            const isConnected = gmailStatus === "connected" || gmailStatus === "active";
+            const isReconnect = gmailStatus === "reconnect_needed";
+
             return (
               <div
                 className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
                 style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px 24px" }}
               >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
-                    <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text)", margin: 0 }}>
-                      {t.settings.gmailTitle}
-                    </p>
-                    {gmail?.connected && (
-                      <span style={{
-                        fontSize: "10px", fontWeight: 700,
-                        background: "rgba(180,240,0,0.15)", color: "#B4F000",
-                        borderRadius: "4px", padding: "1px 6px", letterSpacing: "0.04em",
-                      }}>
-                        CONNECTED
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: "12px", color: "var(--muted)", margin: 0 }}>
-                    {gmail?.connected && gmail.account_email
-                      ? gmail.account_email
-                      : t.settings.gmailDesc}
-                  </p>
-                </div>
-                <a
-                  href="/api/integrations/google/start"
-                  style={{
-                    flexShrink: 0, padding: "8px 18px", borderRadius: "8px",
-                    border: "1px solid var(--border)", background: "transparent",
-                    color: "var(--text)", fontSize: "13px", fontWeight: 500,
-                    cursor: "pointer", textDecoration: "none", display: "inline-block",
-                  }}
-                >
-                  {gmail?.connected ? "Reconnect" : t.settings.connectGmail}
-                </a>
+                {/* State 3: CONNECTED */}
+                {isConnected ? (
+                  <>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+                        <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                          {t.settings.gmailTitle}
+                        </p>
+                        <span style={{
+                          fontSize: "10px", fontWeight: 700,
+                          background: "rgba(180,240,0,0.15)", color: "#B4F000",
+                          borderRadius: "4px", padding: "1px 6px", letterSpacing: "0.04em",
+                        }}>
+                          CONNECTED
+                        </span>
+                      </div>
+                      {gmail?.account_email && (
+                        <p style={{ fontSize: "12px", color: "var(--muted)", margin: 0 }}>
+                          {gmail.account_email}
+                        </p>
+                      )}
+                    </div>
+                    <a
+                      href="/api/integrations/google/start"
+                      style={{
+                        flexShrink: 0, padding: "6px 14px", borderRadius: "8px",
+                        border: "1px solid var(--border)", background: "transparent",
+                        color: "var(--muted)", fontSize: "12px", fontWeight: 500,
+                        cursor: "pointer", textDecoration: "none", display: "inline-block",
+                      }}
+                    >
+                      Beheren
+                    </a>
+                  </>
+                ) : isReconnect ? (
+                  /* State 2: RECONNECT NEEDED */
+                  <>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+                        <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                          {t.settings.gmailTitle}
+                        </p>
+                        <span style={{ fontSize: "13px" }}>⚠</span>
+                        <span style={{
+                          fontSize: "10px", fontWeight: 700,
+                          background: "rgba(249,115,22,0.15)", color: "#fb923c",
+                          borderRadius: "4px", padding: "1px 6px", letterSpacing: "0.04em",
+                        }}>
+                          RECONNECT NEEDED
+                        </span>
+                      </div>
+                      <p style={{ fontSize: "12px", color: "var(--muted)", margin: 0 }}>
+                        Uw Gmail-verbinding is verlopen. Klik om opnieuw te verbinden.
+                      </p>
+                    </div>
+                    <a
+                      href="/api/integrations/google/start"
+                      style={{
+                        flexShrink: 0, padding: "8px 18px", borderRadius: "8px",
+                        border: "1px solid rgba(249,115,22,0.4)", background: "rgba(249,115,22,0.08)",
+                        color: "#fb923c", fontSize: "13px", fontWeight: 600,
+                        cursor: "pointer", textDecoration: "none", display: "inline-block",
+                      }}
+                    >
+                      Opnieuw verbinden
+                    </a>
+                  </>
+                ) : (
+                  /* State 1: NOT CONNECTED */
+                  <>
+                    <div>
+                      <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text)", margin: "0 0 3px" }}>
+                        {t.settings.gmailTitle}
+                      </p>
+                      <p style={{ fontSize: "12px", color: "var(--muted)", margin: 0 }}>
+                        Verbind uw Gmail-account om emails te ontvangen
+                      </p>
+                    </div>
+                    <a
+                      href="/api/integrations/google/start"
+                      style={{
+                        flexShrink: 0, padding: "8px 18px", borderRadius: "8px",
+                        border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.08)",
+                        color: "#f87171", fontSize: "13px", fontWeight: 600,
+                        cursor: "pointer", textDecoration: "none", display: "inline-block",
+                      }}
+                    >
+                      Koppel Gmail
+                    </a>
+                  </>
+                )}
               </div>
             );
           })()}

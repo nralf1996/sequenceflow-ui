@@ -43,6 +43,7 @@ function SettingsContent() {
   // Integration status
   const [integrations, setIntegrations] = useState<Record<string, IntegrationInfo>>({});
   const [banner, setBanner]             = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => {
     const connected = searchParams.get("connected");
@@ -62,12 +63,30 @@ function SettingsContent() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
+  function fetchIntegrations() {
     fetch("/api/integrations/status")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.integrations) setIntegrations(data.integrations); })
       .catch(() => {});
-  }, []);
+  }
+
+  useEffect(() => { fetchIntegrations(); }, []);
+
+  async function handleDisconnect() {
+    if (!window.confirm("Weet je zeker dat je Gmail wilt loskoppelen?")) return;
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/integrations/gmail/disconnect", { method: "POST" });
+      if (res.ok) {
+        fetchIntegrations();
+        setBanner({ type: "success", message: "Gmail losgekoppeld." });
+      } else {
+        setBanner({ type: "error", message: "Loskoppelen mislukt. Probeer opnieuw." });
+      }
+    } finally {
+      setDisconnecting(false);
+    }
+  }
 
   const TABS: { id: Tab; label: string }[] = [
     { id: "policy",       label: t.settings.tabPolicy       },
@@ -243,17 +262,33 @@ function SettingsContent() {
                       : t.settings.gmailDesc}
                   </p>
                 </div>
-                <a
-                  href="/api/integrations/google/start"
-                  style={{
-                    flexShrink: 0, padding: "8px 18px", borderRadius: "8px",
-                    border: "1px solid var(--border)", background: "transparent",
-                    color: "var(--text)", fontSize: "13px", fontWeight: 500,
-                    cursor: "pointer", textDecoration: "none", display: "inline-block",
-                  }}
-                >
-                  {gmail?.connected ? "Reconnect" : t.settings.connectGmail}
-                </a>
+                <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                  {gmail?.connected && (
+                    <button
+                      onClick={handleDisconnect}
+                      disabled={disconnecting}
+                      style={{
+                        padding: "8px 18px", borderRadius: "8px",
+                        border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.08)",
+                        color: "#f87171", fontSize: "13px", fontWeight: 500,
+                        cursor: disconnecting ? "not-allowed" : "pointer", opacity: disconnecting ? 0.6 : 1,
+                      }}
+                    >
+                      {disconnecting ? "..." : "Verwijder"}
+                    </button>
+                  )}
+                  <a
+                    href="/api/integrations/google/start"
+                    style={{
+                      padding: "8px 18px", borderRadius: "8px",
+                      border: "1px solid var(--border)", background: "transparent",
+                      color: "var(--text)", fontSize: "13px", fontWeight: 500,
+                      cursor: "pointer", textDecoration: "none", display: "inline-block",
+                    }}
+                  >
+                    {gmail?.connected ? "Opnieuw verbinden" : t.settings.connectGmail}
+                  </a>
+                </div>
               </div>
             );
           })()}

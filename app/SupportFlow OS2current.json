@@ -31,7 +31,8 @@
     },
     {
       "parameters": {
-        "jsCode": "const text = ($json.subject + \" \" + $json.text).toLowerCase();\n\nlet intent = \"unknown\";\n\nif (/beschadigd|kapot|defect|stuk|krassen|scheur|damaged|broken/.test(text)) {\n  intent = \"damaged\";\n} else if (/retour|terugsturen|refund|terugbetaling|return/.test(text)) {\n  intent = \"return\";\n} else if (/ontbreekt|missen|niet compleet|mist|ontbrekend|missing/.test(text)) {\n  intent = \"missing_items\";\n} else if (/waar blijft|niet ontvangen|nog niet|te laat|vertraging|late|delay/.test(text)) {\n  intent = \"late_delivery\";\n}\n\nreturn [{\n  json: {\n    ...$json,\n    intent\n  }\n}];"
+        "jsCode": "const text = ($json.subject + \" \" + $json.text).toLowerCase();\n\nlet intent = \"unknown\";\n\nif (/beschadigd|kapot|defect|stuk|krassen|scheur|damaged|broken/.test(text)) {\n  intent = \"damaged\";\n} else if (/retour|terugsturen|refund|terugbetaling|return/.test(text)) {\n  intent = \"return\";\n} else if (/ontbreekt|missen|niet compleet|mist|ontbrekend|missing/.test(text)) {\n  intent = \"missing_items\";\n} else if (/waar blijft|niet ontvangen|nog niet|te laat|vertraging|late|delay/.test(text)) {\n  intent = \"late_delivery\";\n}\n\nreturn [{\n  json: {\n    ...$json,\n    intent\n  }\n}];",
+        "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

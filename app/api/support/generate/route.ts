@@ -52,23 +52,19 @@ async function upsertTicket(
     aiDraft: object | null;
   }
 ): Promise<void> {
-  const { error } = await supabase.from("tickets").upsert(
-    {
-      tenant_id:        params.tenantId,
-      gmail_message_id: params.gmailMessageId,
-      gmail_thread_id:  params.gmailThreadId,
-      from_email:       params.fromEmail,
-      from_name:        params.fromName || null,
-      subject:          params.subject.slice(0, 255),
-      body_text:        params.bodyText,
-      intent:           params.intent,
-      confidence:       params.confidence,
-      status:           "draft",
-      ai_draft:         params.aiDraft,
-      updated_at:       new Date().toISOString(),
-    },
-    { onConflict: "tenant_id,gmail_message_id", ignoreDuplicates: false }
-  );
+  const { error } = await supabase.from("tickets").insert({
+    tenant_id:        params.tenantId,
+    gmail_message_id: params.gmailMessageId,
+    gmail_thread_id:  params.gmailThreadId,
+    from_email:       params.fromEmail,
+    from_name:        params.fromName || null,
+    subject:          params.subject.slice(0, 255),
+    body_text:        params.bodyText,
+    intent:           params.intent,
+    confidence:       params.confidence,
+    status:           "draft",
+    ai_draft:         params.aiDraft,
+  });
 
   if (error) {
     console.warn("[generate] ticket upsert failed:", error.message);

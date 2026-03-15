@@ -26,7 +26,7 @@ create table if not exists tickets (
   confidence         numeric,
   status             text        not null default 'draft'
                                  check (status in ('draft', 'approved', 'escalated', 'sent', 'ignored')),
-  ai_draft           text,
+  ai_draft           jsonb,
   agent_notes        text,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()

@@ -27,7 +27,7 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-type IntegrationInfo = { connected: boolean; account_email: string | null; status: string };
+type IntegrationInfo = { connected: boolean; account_email: string | null; status: string | null };
 
 function SettingsContent() {
   const { t } = useTranslation();
@@ -236,6 +236,10 @@ function SettingsContent() {
           {/* Gmail */}
           {(() => {
             const gmail = integrations["gmail"];
+            const gmailStatus = gmail?.status ?? null;
+            const isConnected = gmailStatus === "connected" || gmailStatus === "active";
+            const isReconnect = gmailStatus === "reconnect_needed";
+
             return (
               <div
                 className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"

@@ -106,6 +106,7 @@ export async function GET(req: NextRequest) {
         {
           tenant_id:     tenantId,
           provider:      "gmail",
+          status:        "active",
           account_email: accountEmail,
           access_token:  accessToken,
           refresh_token: refreshToken,

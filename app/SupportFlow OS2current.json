@@ -153,6 +153,14 @@
             {
               "name": "tenant_id",
               "value": "=={{$json.tenant_id}}"
+            },
+            {
+              "name": "threadId",
+              "value": "={{$json.threadId}}"
+            },
+            {
+              "name": "original_message_id",
+              "value": "={{$json.original_message_id}}"
             }
           ]
         },

@@ -37,6 +37,44 @@ type SupportEventPayload = {
   outcome: string;
 };
 
+async function upsertTicket(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  params: {
+    tenantId: string;
+    gmailMessageId: string | null;
+    gmailThreadId: string | null;
+    fromEmail: string;
+    fromName: string;
+    subject: string;
+    bodyText: string;
+    intent: string | null;
+    confidence: number | null;
+    aiDraft: object | null;
+  }
+): Promise<void> {
+  const { error } = await supabase.from("tickets").upsert(
+    {
+      tenant_id:        params.tenantId,
+      gmail_message_id: params.gmailMessageId,
+      gmail_thread_id:  params.gmailThreadId,
+      from_email:       params.fromEmail,
+      from_name:        params.fromName || null,
+      subject:          params.subject.slice(0, 255),
+      body_text:        params.bodyText,
+      intent:           params.intent,
+      confidence:       params.confidence,
+      status:           "draft",
+      ai_draft:         params.aiDraft,
+      updated_at:       new Date().toISOString(),
+    },
+    { onConflict: "tenant_id,gmail_message_id", ignoreDuplicates: false }
+  );
+
+  if (error) {
+    console.warn("[generate] ticket upsert failed:", error.message);
+  }
+}
+
 async function insertSupportEvent(
   supabase: ReturnType<typeof getSupabaseClient>,
   event: SupportEventPayload
@@ -144,6 +182,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  const gmailMessageId = data.original_message_id || data.message_id || null;
+  const gmailThreadId  = data.threadId || data.thread_id || null;
+
   console.log("=== FULL REQUEST BODY ===");
   console.log(JSON.stringify(data, null, 2));
   console.log("=== END REQUEST BODY ===");
@@ -238,6 +279,19 @@ export async function POST(req: Request) {
         latencyMs:  Date.now() - startedAt,
         draftText:  replyBody,
         outcome:    "auto_reply",
+      });
+
+      await upsertTicket(supabase, {
+        tenantId,
+        gmailMessageId,
+        gmailThreadId,
+        fromEmail:  from,
+        fromName:   customerName,
+        subject,
+        bodyText:   ticketBody,
+        intent:     "damage",
+        confidence: 0.95,
+        aiDraft:    { subject: `Re: ${subject}`, body: replyBody, from },
       });
 
       return NextResponse.json({
@@ -388,6 +442,19 @@ export async function POST(req: Request) {
       latencyMs:  Date.now() - startedAt,
       draftText:  validated.draft.body,
       outcome:    routing === "AUTO" ? "auto" : "human_review",
+    });
+
+    await upsertTicket(supabase, {
+      tenantId,
+      gmailMessageId,
+      gmailThreadId,
+      fromEmail:  from,
+      fromName:   customerName,
+      subject,
+      bodyText:   ticketBody,
+      intent:     resolvedIntent,
+      confidence: finalConfidence,
+      aiDraft:    { ...validated.draft, from },
     });
 
     return NextResponse.json({

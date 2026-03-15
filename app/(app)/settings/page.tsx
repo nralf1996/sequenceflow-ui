@@ -250,7 +250,7 @@ function SettingsContent() {
                     <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text)", margin: 0 }}>
                       {t.settings.gmailTitle}
                     </p>
-                    {gmail?.connected && (
+                    {isConnected && (
                       <span style={{
                         fontSize: "10px", fontWeight: 700,
                         background: "rgba(180,240,0,0.15)", color: "#B4F000",
@@ -261,13 +261,13 @@ function SettingsContent() {
                     )}
                   </div>
                   <p style={{ fontSize: "12px", color: "var(--muted)", margin: 0 }}>
-                    {gmail?.connected && gmail.account_email
+                    {isConnected && gmail?.account_email
                       ? gmail.account_email
                       : t.settings.gmailDesc}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-                  {gmail?.connected && (
+                  {isConnected && (
                     <button
                       onClick={handleDisconnect}
                       disabled={disconnecting}
@@ -290,7 +290,7 @@ function SettingsContent() {
                       cursor: "pointer", textDecoration: "none", display: "inline-block",
                     }}
                   >
-                    {gmail?.connected ? "Opnieuw verbinden" : t.settings.connectGmail}
+                    {isConnected ? "Opnieuw verbinden" : t.settings.connectGmail}
                   </a>
                 </div>
               </div>
